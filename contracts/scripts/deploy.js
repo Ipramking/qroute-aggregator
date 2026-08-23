@@ -1,112 +1,121 @@
+// Real deployment to Quai Orchard (Cyprus-1) using the quais SDK.
+//
+// Prereqs:
+//   1. `npx hardhat compile`  (produces artifacts/)
+//   2. contracts/.env with PRIVATE_KEY (a funded Cyprus-1 wallet) + RPC_URL
+//      -> generate one with: node scripts/generate-wallet.js
+//      -> fund it at https://orchard.faucet.quai.network
+//
+// Run: node scripts/deploy.js
+//
+// NOTE (Quai): contract addresses must land in the deployer's shard scope.
+// We deploy each contract directly from a Cyprus-1 EOA (no in-contract CREATE2),
+// which quais handles. If a deploy reverts with an out-of-scope address error,
+// that is the known Quai grinding constraint — retry or use a salted deploy.
+
 const { quais } = require("quais");
 const fs = require("fs");
 const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
+
+const ARTIFACTS = path.join(__dirname, "..", "artifacts", "contracts");
+
+function loadArtifact(contractName) {
+  const p = path.join(ARTIFACTS, `${contractName}.sol`, `${contractName}.json`);
+  if (!fs.existsSync(p)) {
+    throw new Error(`Artifact for ${contractName} not found. Run 'npx hardhat compile' first.`);
+  }
+  return JSON.parse(fs.readFileSync(p, "utf8"));
+}
+
+async function deploy(name, wallet, ...args) {
+  const artifact = loadArtifact(name);
+  const factory = new quais.ContractFactory(artifact.abi, artifact.bytecode, wallet);
+  console.log(`Deploying ${name} ...`);
+  const contract = await factory.deploy(...args);
+  await contract.waitForDeployment();
+  const address = await contract.getAddress();
+  console.log(`  ${name} -> ${address}`);
+  return contract;
+}
 
 async function main() {
-  // Load configuration from env variables
-  const privateKey = process.env.PRIVATE_KEY || "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"; 
+  const privateKey = process.env.PRIVATE_KEY;
   const rpcUrl = process.env.RPC_URL || "https://orchard.rpc.quai.network/cyprus1";
 
-  console.log("Starting Quai Network deploy script...");
-  console.log("Connecting to RPC node:", rpcUrl);
-
-  const provider = new quais.JsonRpcProvider(rpcUrl);
-  
-  // Verify provider connection with a 3-second timeout to prevent hanging offline
-  const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms));
-  try {
-    const network = await Promise.race([provider.getNetwork(), timeout(3000)]);
-    console.log("Connected to Quai network. ChainId:", network.chainId);
-  } catch (error) {
-    console.warn("Could not connect to live RPC (timed out). Running dry-run simulation mode.");
+  if (!privateKey || !/^0x[0-9a-fA-F]{64}$/.test(privateKey)) {
+    throw new Error("Missing/invalid PRIVATE_KEY in contracts/.env. Run scripts/generate-wallet.js.");
   }
 
+  const provider = new quais.JsonRpcProvider(rpcUrl, undefined, { usePathing: true });
   const wallet = new quais.Wallet(privateKey, provider);
-  const deployerAddress = await wallet.getAddress();
-  
-  console.log("Deployer Address:", deployerAddress);
+  const deployer = await wallet.getAddress();
+  console.log("Deployer:", deployer);
+  console.log("RPC     :", rpcUrl);
 
-  // Address prefix analysis to determine Zone Shard
-  const prefixHex = deployerAddress.slice(2, 4);
-  const prefixByte = parseInt(prefixHex, 16);
-  let zone = "unknown";
-  
-  if (prefixByte >= 0x00 && prefixByte <= 0x1d) zone = "cyprus-1";
-  else if (prefixByte >= 0x1e && prefixByte <= 0x3b) zone = "cyprus-2";
-  else if (prefixByte >= 0x3c && prefixByte <= 0x59) zone = "cyprus-3";
-  else if (prefixByte >= 0x5a && prefixByte <= 0x77) zone = "ethiopia-1";
-  else if (prefixByte >= 0x78 && prefixByte <= 0x95) zone = "ethiopia-2";
-  else if (prefixByte >= 0x96 && prefixByte <= 0xb3) zone = "ethiopia-3";
-  else if (prefixByte >= 0xb4 && prefixByte <= 0xd1) zone = "paxos-1";
-  else if (prefixByte >= 0xd2 && prefixByte <= 0xef) zone = "paxos-2";
-  else if (prefixByte >= 0xf0 && prefixByte <= 0xff) zone = "paxos-3";
-
-  console.log(`Resolved target Zone Shard: ${zone} (prefix byte: 0x${prefixHex})`);
-
-  // Load contract compilation artifacts compiled by Hardhat
-  const artifactsDir = path.join(__dirname, "../artifacts/contracts");
-  
-  const loadArtifact = (contractName) => {
-    const filePath = path.join(artifactsDir, `${contractName}.sol/${contractName}.json`);
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`Artifact for ${contractName} not found. Please run 'npx hardhat compile' first.`);
-    }
-    return JSON.parse(fs.readFileSync(filePath, "utf8"));
-  };
-
-  const MockERC20Artifact = loadArtifact("MockERC20");
-  const QuaiDEXPairArtifact = loadArtifact("QuaiDEXPair");
-  const CrossShardRouterArtifact = loadArtifact("CrossShardRouter");
-
-  console.log("Deploying Mock QI Token...");
-  // In a real environment, we would call factory.deploy()
-  // We simulate the output addresses for testing/dry-run safety
-  const mockAddressQI = "0x" + prefixHex + Array.from({ length: 38 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-  console.log(`[SIMULATED] Mock QI Token deployed to: ${mockAddressQI}`);
-
-  console.log("Deploying Mock USDC Token...");
-  const mockAddressUSDC = "0x" + prefixHex + Array.from({ length: 38 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-  console.log(`[SIMULATED] Mock USDC Token deployed to: ${mockAddressUSDC}`);
-
-  console.log("Deploying QuaiDEXPair...");
-  const mockAddressPair = "0x" + prefixHex + Array.from({ length: 38 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-  console.log(`[SIMULATED] QuaiDEXPair deployed to: ${mockAddressPair}`);
-
-  console.log("Deploying CrossShardRouter...");
-  const mockAddressRouter = "0x" + prefixHex + Array.from({ length: 38 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-  console.log(`[SIMULATED] CrossShardRouter deployed to: ${mockAddressRouter}`);
-
-  // Save deployed addresses configuration
-  const deployedConfig = {
-    zone,
-    deployer: deployerAddress,
-    qiToken: mockAddressQI,
-    usdcToken: mockAddressUSDC,
-    dexPair: mockAddressPair,
-    router: mockAddressRouter,
-    timestamp: new Date().toISOString()
-  };
-
-  const outputPath = path.join(__dirname, "../../frontend/src/deployed_addresses.json");
-  
-  // Ensure target folder exists
-  const outputDir = path.dirname(outputPath);
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  const balance = await provider.getBalance(deployer);
+  console.log("Balance :", quais.formatQuai(balance), "QUAI");
+  if (balance === 0n) {
+    throw new Error("Deployer has 0 QUAI. Fund it at https://orchard.faucet.quai.network before deploying.");
   }
 
+  // --- Tokens --------------------------------------------------------------
+  const qi = await deploy("TestToken", wallet, "Quai Test QI", "QI");
+  const usdc = await deploy("TestToken", wallet, "Quai Test USDC", "USDC");
+  const qiAddr = await qi.getAddress();
+  const usdcAddr = await usdc.getAddress();
+
+  // Sort so token0 < token1 (pair reserve semantics).
+  const [token0, token1] =
+    BigInt(qiAddr) < BigInt(usdcAddr) ? [qiAddr, usdcAddr] : [usdcAddr, qiAddr];
+
+  // --- Pair ----------------------------------------------------------------
+  const pair = await deploy("QRoutePair", wallet, token0, token1);
+  const pairAddr = await pair.getAddress();
+
+  // --- Registry ------------------------------------------------------------
+  const registry = await deploy("QRouteRegistry", wallet);
+  console.log("Registering pair ...");
+  await (await registry.registerPair(qiAddr, usdcAddr, pairAddr)).wait();
+
+  // --- Router --------------------------------------------------------------
+  // feeTo is the deployer for now; swap to a multisig before mainnet (audit M5).
+  const router = await deploy("QRouteRouter", wallet, await registry.getAddress(), deployer);
+  const routerAddr = await router.getAddress();
+
+  // --- Seed liquidity (100k / 100k) ---------------------------------------
+  const seed = 100_000n * 10n ** 18n;
+  console.log("Minting + seeding liquidity ...");
+  await (await qi.mint(deployer, seed)).wait();
+  await (await usdc.mint(deployer, seed)).wait();
+  await (await qi.transfer(pairAddr, seed)).wait();
+  await (await usdc.transfer(pairAddr, seed)).wait();
+  await (await pair.mint(deployer)).wait();
+  console.log("  Liquidity seeded.");
+
+  // --- Export addresses to the frontend -----------------------------------
+  const deployedConfig = {
+    zone: "cyprus-1",
+    deployer,
+    router: routerAddr,
+    registry: await registry.getAddress(),
+    dexPair: pairAddr,
+    qiToken: qiAddr,
+    usdcToken: usdcAddr,
+    rpcUrl,
+    timestamp: new Date().toISOString(),
+  };
+
+  const outputPath = path.join(__dirname, "..", "..", "frontend", "src", "deployed_addresses.json");
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, JSON.stringify(deployedConfig, null, 2));
-  console.log("Deployment configs successfully written and exported to:", outputPath);
-  console.log("Deployment step complete!");
+  console.log("Wrote addresses ->", outputPath);
+  console.log("Deployment complete.");
 }
 
-if (require.main === module) {
-  main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error("Deployment script failed:", error);
-      process.exit(1);
-    });
-}
-
-module.exports = main;
+main()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error("Deployment failed:", err);
+    process.exit(1);
+  });
