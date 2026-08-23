@@ -32,6 +32,22 @@ interface Web3State {
   setTokenOut: (token: Token) => void;
   setAmountIn: (amount: string) => void;
   calculateOptimalRoute: () => void;
+
+  // Liquidity Provider (LP) State
+  lpTokenA: Token;
+  lpTokenB: Token;
+  lpAmountA: string;
+  lpAmountB: string;
+  lpSharesBalance: string;
+  lpError: string | null;
+
+  setLpTokenA: (token: Token) => void;
+  setLpTokenB: (token: Token) => void;
+  setLpAmountA: (amount: string) => void;
+  setLpAmountB: (amount: string) => void;
+  addLiquidity: () => Promise<string>;
+  removeLiquidity: () => Promise<string>;
+  fetchLpShares: () => void;
 }
 
 // Generate the same mock graph for pathfinding
@@ -68,9 +84,10 @@ export const useWeb3Store = create<Web3State>((set, get) => ({
   hasPelagus: false,
   setWallet: (address, zone) => {
     set({ address, zone });
-    get().calculateOptimalRoute(); // Recalculate route when wallet zone changes
+    get().calculateOptimalRoute();
+    get().fetchLpShares(); // Fetch LP balance on connection
   },
-  clearWallet: () => set({ address: null, zone: null }),
+  clearWallet: () => set({ address: null, zone: null, lpSharesBalance: "0.0" }),
   setHasPelagus: (hasPelagus) => set({ hasPelagus }),
 
   // Initial Swap State
@@ -122,5 +139,72 @@ export const useWeb3Store = create<Web3State>((set, get) => ({
         error: err.message || "Failed to calculate swap path."
       });
     }
+  },
+
+  // Initial Liquidity Provider (LP) State
+  lpTokenA: TOKENS[0],
+  lpTokenB: TOKENS[1],
+  lpAmountA: "",
+  lpAmountB: "",
+  lpSharesBalance: "0.0",
+  lpError: null,
+
+  setLpTokenA: (lpTokenA) => set({ lpTokenA }),
+  setLpTokenB: (lpTokenB) => set({ lpTokenB }),
+  setLpAmountA: (lpAmountA) => {
+    set({ lpAmountA });
+    // Simple Constant Product LP helper: if Token A/B are 1:1, auto-fill Token B
+    if (lpAmountA && !isNaN(Number(lpAmountA))) {
+      set({ lpAmountB: lpAmountA });
+    } else {
+      set({ lpAmountB: "" });
+    }
+  },
+  setLpAmountB: (lpAmountB) => {
+    set({ lpAmountB });
+    if (lpAmountB && !isNaN(Number(lpAmountB))) {
+      set({ lpAmountA: lpAmountB });
+    } else {
+      set({ lpAmountA: "" });
+    }
+  },
+
+  fetchLpShares: () => {
+    const { address } = get();
+    if (!address) {
+      set({ lpSharesBalance: "0.0" });
+      return;
+    }
+    // Simulate user holding 45.5 LPT shares
+    set({ lpSharesBalance: "45.5200" });
+  },
+
+  addLiquidity: async () => {
+    const { lpAmountA, address } = get();
+    if (!address || !lpAmountA || isNaN(Number(lpAmountA))) {
+      throw new Error("Invalid deposit parameters");
+    }
+
+    // Simulate token approvals and execution
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+    // Add LPT shares to state
+    const currentShares = parseFloat(get().lpSharesBalance);
+    const newShares = (currentShares + parseFloat(lpAmountA) * 0.95).toFixed(4); // LPT formula simulation
+    set({ lpSharesBalance: newShares, lpAmountA: "", lpAmountB: "" });
+
+    return "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
+  },
+
+  removeLiquidity: async () => {
+    const { lpSharesBalance, address } = get();
+    if (!address || parseFloat(lpSharesBalance) <= 0) {
+      throw new Error("No LPT shares to withdraw");
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    set({ lpSharesBalance: "0.0" });
+
+    return "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
   }
 }));

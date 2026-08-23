@@ -107,4 +107,51 @@ describe("qroute-aggregator AEV Arbitrage Bot", () => {
       expect(err.message).to.equal("Cannot execute unprofitable opportunity");
     }
   });
+
+  describe("Mempool Arbitrage Forecasting", () => {
+    it("should forecast pool reserve changes post-swap correctly", () => {
+      const initialPool: DEXPool = {
+        pairAddress: "0x1111111111111111111111111111111111111111",
+        token0: TOKEN_A,
+        token1: TOKEN_B,
+        reserve0: 10000n * (10n ** 18n),
+        reserve1: 10000n * (10n ** 18n),
+        zone: "cyprus-1"
+      };
+
+      // Swap 100 TOKEN_A into pool
+      const forecastPool = calculator.forecastPoolReserves(initialPool, TOKEN_A, 100n * (10n ** 18n));
+
+      expect(forecastPool.reserve0).to.equal(initialPool.reserve0 + 100n * (10n ** 18n));
+      expect(forecastPool.reserve1 < initialPool.reserve1).to.be.true;
+    });
+
+    it("should register mempool listeners and simulate receipt of pending transactions", (done) => {
+      const initialPool: DEXPool = {
+        pairAddress: "0x1111111111111111111111111111111111111111",
+        token0: TOKEN_A,
+        token1: TOKEN_B,
+        reserve0: 10000n * (10n ** 18n),
+        reserve1: 10000n * (10n ** 18n),
+        zone: "cyprus-1"
+      };
+
+      const monitor = new (require("../src/monitor").ArbitrageMonitor)([initialPool]);
+      
+      monitor.onPendingSwapDetected((pendingTx: any) => {
+        expect(pendingTx.txHash).to.equal("0x12345");
+        expect(pendingTx.amountIn > 0n).to.be.true;
+        done();
+      });
+
+      monitor.triggerPendingSwap({
+        txHash: "0x12345",
+        poolAddress: initialPool.pairAddress,
+        tokenIn: TOKEN_A,
+        amountIn: 100n * (10n ** 18n),
+        gasPrice: 1000000000n,
+        zone: "cyprus-1"
+      });
+    });
+  });
 });

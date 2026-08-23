@@ -67,6 +67,28 @@ export class ArbitrageCalculator {
   }
 
   /**
+   * Forecasts the updated reserve balances of a pool post-swap execution.
+   */
+  public forecastPoolReserves(
+    pool: DEXPool,
+    tokenIn: string,
+    amountIn: bigint
+  ): DEXPool {
+    const isToken0 = pool.token0.toLowerCase() === tokenIn.toLowerCase();
+    const [reserveIn, reserveOut] = isToken0
+      ? [pool.reserve0, pool.reserve1]
+      : [pool.reserve1, pool.reserve0];
+
+    const amountOut = this.getAmountOut(amountIn, reserveIn, reserveOut);
+    
+    return {
+      ...pool,
+      reserve0: isToken0 ? pool.reserve0 + amountIn : pool.reserve0 - amountOut,
+      reserve1: isToken0 ? pool.reserve1 - amountOut : pool.reserve1 + amountIn
+    };
+  }
+
+  /**
    * Finds the optimal input amount using binary search.
    */
   public findOptimalOpportunity(

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import WalletConnect from "../components/WalletConnect";
 import SwapForm from "../components/SwapForm";
+import LPForm from "../components/LPForm";
 import TxTracker from "../components/TxTracker";
 import { useWeb3Store } from "../store/useWeb3Store";
 import { OptimizedRoute } from "qroute-aggregator-routing-engine";
@@ -11,6 +12,7 @@ export default function Home() {
   const { address: userAddress } = useWeb3Store();
   const [activeTxHash, setActiveTxHash] = useState<string | null>(null);
   const [activeRoute, setActiveRoute] = useState<OptimizedRoute | null>(null);
+  const [activeTab, setActiveTab] = useState<"SWAP" | "POOL">("SWAP");
 
   const handleSwapDispatched = (txHash: string, route: OptimizedRoute) => {
     setActiveTxHash(txHash);
@@ -43,9 +45,37 @@ export default function Home() {
 
         {/* Swap & Info Panel Grid */}
         <div className="grid md:grid-cols-2 gap-8 items-start w-full">
-          {/* Swap Panel */}
-          <div className="flex justify-center">
-            <SwapForm onSwapDispatched={handleSwapDispatched} />
+          {/* Main Card (Swap or Pool) */}
+          <div className="flex flex-col items-center gap-6 justify-center">
+            {/* Card Switcher Toggle */}
+            <div className="bg-quai-dark/80 p-1.5 rounded-xl border border-neutral-800 flex shadow-inner">
+              <button
+                onClick={() => setActiveTab("SWAP")}
+                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
+                  activeTab === "SWAP"
+                    ? "bg-quai-orange text-white shadow-md shadow-orange-950/20"
+                    : "text-neutral-400 hover:text-neutral-200"
+                }`}
+              >
+                Swap
+              </button>
+              <button
+                onClick={() => setActiveTab("POOL")}
+                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
+                  activeTab === "POOL"
+                    ? "bg-quai-orange text-white shadow-md shadow-orange-950/20"
+                    : "text-neutral-400 hover:text-neutral-200"
+                }`}
+              >
+                Pool
+              </button>
+            </div>
+
+            {activeTab === "SWAP" ? (
+              <SwapForm onSwapDispatched={handleSwapDispatched} />
+            ) : (
+              <LPForm />
+            )}
           </div>
 
           {/* Info Panel */}
