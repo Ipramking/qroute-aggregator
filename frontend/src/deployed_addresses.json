@@ -1,0 +1,9 @@
+{
+  "zone": "paxos-3",
+  "deployer": "0xf42138298fa1Fc8514BC17D59eBB451AceF3cDBa",
+  "qiToken": "0xf4c16e694c0d41adfd333401974555a7ce6e4fc6",
+  "usdcToken": "0xf423ce6ab9bbcc6db46fab8bbd3e9b6949e17e87",
+  "dexPair": "0xf45da36e16e8cd2290f712799ab8c8f9362664e4",
+  "router": "0xf4f8f3446027126dafebc2df90b1bb87b744cd81",
+  "timestamp": "2026-08-23T14:09:41.338Z"
+}
