@@ -4,7 +4,8 @@
   "workspaces": [
     "contracts",
     "routing-engine",
-    "frontend"
+    "frontend",
+    "arbitrage-bot"
   ],
   "scripts": {
     "test": "npm run test -w contracts && npm run test -w routing-engine"
