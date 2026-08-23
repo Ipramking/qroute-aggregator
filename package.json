@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "contracts",
-    "routing-engine"
+    "routing-engine",
+    "frontend"
   ],
   "scripts": {
     "test": "npm run test -w contracts && npm run test -w routing-engine"
