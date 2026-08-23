@@ -1,0 +1,11 @@
+{
+  "name": "qroute-aggregator-root",
+  "private": true,
+  "workspaces": [
+    "contracts",
+    "routing-engine"
+  ],
+  "scripts": {
+    "test": "npm run test -w contracts && npm run test -w routing-engine"
+  }
+}
