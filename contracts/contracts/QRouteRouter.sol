@@ -11,6 +11,8 @@ interface IQRoutePair {
     function token1() external view returns (address);
     function getReserves() external view returns (uint112 reserve0, uint112 reserve1);
     function swap(uint256 amount0Out, uint256 amount1Out, address to) external;
+    function mint(address to) external returns (uint256 liquidity);
+    function burn(address to) external returns (uint256 amount0, uint256 amount1);
 }
 
 interface IQRouteRegistry {
@@ -173,6 +175,41 @@ contract QRouteRouter is ReentrancyGuard, Ownable {
 
         amountOut = _executeSwap(tokenIn, pair, amountIn, minAmountOut, to);
         emit SwapExecuted(msg.sender, tokenIn, tokenOut, amountIn, amountOut, to, true);
+    }
+
+    // ----------------------------------------------------------- liquidity
+
+    /// @notice Add liquidity atomically: pull both tokens straight into the pair,
+    ///         then mint LP tokens to the provider. (Testnet-simple: excess of the
+    ///         off-ratio side is absorbed by the pool; the frontend quotes the ratio.)
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        uint256 amountA,
+        uint256 amountB,
+        address to,
+        uint256 deadline
+    ) external nonReentrant ensure(deadline) returns (uint256 liquidity) {
+        require(to != address(0), "QRoute: ZERO_TO");
+        address pair = _pairFor(tokenA, tokenB);
+        IERC20(tokenA).safeTransferFrom(msg.sender, pair, amountA);
+        IERC20(tokenB).safeTransferFrom(msg.sender, pair, amountB);
+        liquidity = IQRoutePair(pair).mint(to);
+    }
+
+    /// @notice Remove liquidity: pull the caller's LP tokens into the pair and burn.
+    ///         Caller must approve the router to spend their LP (the pair is an ERC20).
+    function removeLiquidity(
+        address tokenA,
+        address tokenB,
+        uint256 liquidity,
+        address to,
+        uint256 deadline
+    ) external nonReentrant ensure(deadline) returns (uint256 amount0, uint256 amount1) {
+        require(to != address(0), "QRoute: ZERO_TO");
+        address pair = _pairFor(tokenA, tokenB);
+        IERC20(pair).safeTransferFrom(msg.sender, pair, liquidity);
+        (amount0, amount1) = IQRoutePair(pair).burn(to);
     }
 
     // ------------------------------------------------------------ internal

@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { quais } from "quais";
+import { useEffect, useState } from "react";
 import { useWeb3Store, TOKENS } from "../store/useWeb3Store";
+import { IS_LIVE } from "../utils/contracts";
 import { OptimizedRoute } from "qroute-aggregator-routing-engine";
 
 interface SwapFormProps {
   onSwapDispatched: (txHash: string, route: OptimizedRoute) => void;
 }
+
+const SLIPPAGE_OPTIONS = [10, 50, 100]; // bips: 0.1% / 0.5% / 1%
 
 export default function SwapForm({ onSwapDispatched }: SwapFormProps) {
   const {
@@ -18,34 +20,32 @@ export default function SwapForm({ onSwapDispatched }: SwapFormProps) {
     amountIn,
     route,
     error,
+    reservesLive,
+    slippageBips,
+    setSlippageBips,
     setTokenIn,
     setTokenOut,
-    setAmountIn
+    setAmountIn,
+    refreshReserves,
+    executeSwap: storeExecuteSwap,
   } = useWeb3Store();
 
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  // Load live reserves on mount.
+  useEffect(() => {
+    refreshReserves();
+  }, [refreshReserves]);
+
   const executeSwap = async () => {
-    if (!route || !userAddress || !(window as any).pelagus) return;
+    if (!route || !userAddress) return;
     setIsLoading(true);
     setLocalError(null);
 
     try {
-      const provider = new quais.BrowserProvider((window as any).pelagus);
-      const signer = await provider.getSigner();
-      
-      // Select router contract address on the appropriate zone.
-      const routerAddress = "0x8888888888888888888888888888888888888888"; 
-      
-      const tx = await signer.sendTransaction({
-        from: userAddress,
-        to: routerAddress,
-        value: route.path[0].type === "LOCAL_SWAP" ? route.amountIn : 0n,
-        data: "0x"
-      });
-
-      onSwapDispatched(tx.hash, route);
+      const txHash = await storeExecuteSwap();
+      onSwapDispatched(txHash, route);
     } catch (err: any) {
       setLocalError(err.message || "Transaction execution failed.");
     } finally {
@@ -57,7 +57,19 @@ export default function SwapForm({ onSwapDispatched }: SwapFormProps) {
 
   return (
     <div className="bg-quai-gray rounded-2xl p-6 border border-neutral-800 w-full max-w-md shadow-xl">
-      <h2 className="text-lg font-bold text-white text-left mb-5">Swap Tokens</h2>
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-lg font-bold text-white text-left">Swap Tokens</h2>
+        <span
+          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border ${
+            IS_LIVE && reservesLive
+              ? "text-green-400 border-green-900/60 bg-green-950/20"
+              : "text-amber-400 border-amber-900/60 bg-amber-950/20"
+          }`}
+          title={IS_LIVE ? "Live reserves from Cyprus-1" : "Contracts not deployed yet"}
+        >
+          {IS_LIVE && reservesLive ? "● Live · Cyprus-1" : "Preview"}
+        </span>
+      </div>
 
       <div className="space-y-4">
         {/* Input Card */}
@@ -134,6 +146,26 @@ export default function SwapForm({ onSwapDispatched }: SwapFormProps) {
             </div>
           </div>
         )}
+
+        {/* Slippage tolerance */}
+        <div className="flex items-center justify-between text-xs px-1">
+          <span className="text-neutral-400 font-medium">Slippage tolerance</span>
+          <div className="flex gap-1.5">
+            {SLIPPAGE_OPTIONS.map((bips) => (
+              <button
+                key={bips}
+                onClick={() => setSlippageBips(bips)}
+                className={`px-2 py-1 rounded-md font-semibold border transition ${
+                  slippageBips === bips
+                    ? "bg-quai-orange/20 text-quai-orange border-quai-orange/40"
+                    : "text-neutral-400 border-neutral-800 hover:text-neutral-200"
+                }`}
+              >
+                {bips / 100}%
+              </button>
+            ))}
+          </div>
+        </div>
 
         {activeError && (
           <div className="bg-red-950/20 text-red-400 border border-red-900/50 px-4 py-2.5 rounded-xl text-xs text-left">

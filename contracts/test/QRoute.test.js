@@ -122,6 +122,43 @@ describe("qroute hardened contracts", function () {
     });
   });
 
+  describe("QRouteRouter — liquidity", function () {
+    it("adds liquidity atomically and mints LP to the provider", async function () {
+      const amt = 1000n * E18;
+      await qi.mint(user.address, amt);
+      await usdc.mint(user.address, amt);
+      await qi.connect(user).approve(await router.getAddress(), amt);
+      await usdc.connect(user).approve(await router.getAddress(), amt);
+
+      await router
+        .connect(user)
+        .addLiquidity(await qi.getAddress(), await usdc.getAddress(), amt, amt, user.address, FAR_DEADLINE);
+
+      expect(await pair.balanceOf(user.address)).to.be.greaterThan(0n);
+    });
+
+    it("removes liquidity and returns the underlying tokens", async function () {
+      const amt = 1000n * E18;
+      await qi.mint(user.address, amt);
+      await usdc.mint(user.address, amt);
+      await qi.connect(user).approve(await router.getAddress(), amt);
+      await usdc.connect(user).approve(await router.getAddress(), amt);
+      await router
+        .connect(user)
+        .addLiquidity(await qi.getAddress(), await usdc.getAddress(), amt, amt, user.address, FAR_DEADLINE);
+
+      const lp = await pair.balanceOf(user.address);
+      await pair.connect(user).approve(await router.getAddress(), lp);
+      await router
+        .connect(user)
+        .removeLiquidity(await qi.getAddress(), await usdc.getAddress(), lp, user.address, FAR_DEADLINE);
+
+      expect(await pair.balanceOf(user.address)).to.equal(0n);
+      expect(await qi.balanceOf(user.address)).to.be.greaterThan(0n);
+      expect(await usdc.balanceOf(user.address)).to.be.greaterThan(0n);
+    });
+  });
+
   describe("QRouteRouter — cross-shard bridge callback (C2)", function () {
     it("rejects a non-relayer caller", async function () {
       await expect(

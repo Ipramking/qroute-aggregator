@@ -29,18 +29,9 @@ export default function LPForm() {
     setSuccessTx(null);
 
     try {
-      // Step 1: Simulate Approval for Token A
-      setTxStage("APPROVING_A");
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Step 2: Simulate Approval for Token B
-      setTxStage("APPROVING_B");
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Step 3: Execute Liquidity Deposit
+      // addLiquidity handles the token approvals then the atomic router deposit.
       setTxStage("DEPOSITING");
       const txHash = await addLiquidity();
-      
       setSuccessTx(txHash);
     } catch (err: any) {
       setError(err.message || "Failed to add liquidity.");
