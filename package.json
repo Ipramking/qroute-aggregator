@@ -8,6 +8,7 @@
     "arbitrage-bot"
   ],
   "scripts": {
+    "build": "npm run build -w routing-engine && npm run build -w frontend",
     "test": "npm run test -w contracts && npm run test -w routing-engine"
   }
 }
