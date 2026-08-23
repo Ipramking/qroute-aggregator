@@ -100,7 +100,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-neutral-900 py-6 px-6 text-center text-xs text-neutral-500 flex flex-col sm:flex-row justify-between items-center gap-4 bg-quai-dark/20">
-        <p>© 2026 qroute-aggregator. Built on Quai Network.</p>
+        <p>© 2026 qroute. Built on Quai Network.</p>
         <div className="flex gap-4">
           <a
             href="https://github.com/Ipramking/qroute-aggregator"

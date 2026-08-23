@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "qroute-aggregator - Quai Multi-Shard Liquidity Aggregator",
+  title: "qroute - Quai Multi-Shard Liquidity Aggregator",
   description: "Aggregating liquidity across 9 Zone shards for optimal swap execution on Quai Network.",
 };
 
