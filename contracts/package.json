@@ -1,0 +1,16 @@
+{
+  "name": "qroute-aggregator-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.2",
+    "hardhat": "^2.22.1"
+  },
+  "dependencies": {
+    "quais": "^1.0.0-alpha.56"
+  }
+}

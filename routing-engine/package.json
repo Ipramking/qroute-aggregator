@@ -1,0 +1,21 @@
+{
+  "name": "qroute-aggregator-routing-engine",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "test": "mocha -r ts-node/register test/**/*.test.ts"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.11.19",
+    "chai": "^4.4.1",
+    "mocha": "^10.3.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "quais": "^1.0.0-alpha.56"
+  }
+}
