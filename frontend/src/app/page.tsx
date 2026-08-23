@@ -5,16 +5,36 @@ import WalletConnect from "../components/WalletConnect";
 import SwapForm from "../components/SwapForm";
 import LPForm from "../components/LPForm";
 import TxTracker from "../components/TxTracker";
+import ShardMap from "../components/ShardMap";
+import { Card, SectionLabel, StepNumber } from "../components/ui/primitives";
 import { useWeb3Store } from "../store/useWeb3Store";
 import { OptimizedRoute } from "qroute-aggregator-routing-engine";
 
+const STEPS = [
+  {
+    n: "01",
+    title: "Off-chain pathfinder",
+    body: "Reads reserves across all 9 zone shards and computes the optimal route, evaluating split-paths in real time.",
+  },
+  {
+    n: "02",
+    title: "Gas-aware routing",
+    body: "Prices Quai's native cross-shard (ETx) fees so you only route across shards when it actually pays off.",
+  },
+  {
+    n: "03",
+    title: "AEV rebated to you",
+    body: "Cross-shard arbitrage is captured for the protocol and returned to traders — not leaked to MEV bots.",
+  },
+];
+
 export default function Home() {
-  const { address: userAddress } = useWeb3Store();
+  const { address, zone } = useWeb3Store();
   const [activeTxHash, setActiveTxHash] = useState<string | null>(null);
   const [activeRoute, setActiveRoute] = useState<OptimizedRoute | null>(null);
-  const [activeTab, setActiveTab] = useState<"SWAP" | "POOL">("SWAP");
+  const [tab, setTab] = useState<"SWAP" | "POOL">("SWAP");
 
-  const handleSwapDispatched = (txHash: string, route: OptimizedRoute) => {
+  const onSwapDispatched = (txHash: string, route: OptimizedRoute) => {
     setActiveTxHash(txHash);
     setActiveRoute(route);
   };
@@ -22,123 +42,118 @@ export default function Home() {
   return (
     <>
       {/* Header */}
-      <header className="border-b border-neutral-900 px-6 py-4 flex justify-between items-center bg-quai-dark/50 backdrop-blur-md sticky top-0 z-40">
-        <div className="flex items-center gap-2.5">
-          <span className="text-2xl">⚡</span>
-          <h1 className="text-lg font-bold tracking-tight text-white font-mono">qroute</h1>
+      <header className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary shadow-glow">
+              <span className="text-lg font-bold">⌁</span>
+            </div>
+            <div className="leading-none">
+              <span className="font-display text-lg font-bold tracking-tight text-foreground">qroute</span>
+              <span className="ml-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                /quai
+              </span>
+            </div>
+          </div>
+          <WalletConnect />
         </div>
-        <WalletConnect />
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center py-12 px-4 max-w-5xl mx-auto w-full gap-12">
-        
-        {/* Hero Section */}
-        <div className="text-center space-y-4 max-w-2xl">
-          <h2 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-            Unifying Quai Network <span className="text-quai-orange">Cross-Shard</span> Liquidity
-          </h2>
-          <p className="text-base text-neutral-400 max-w-lg mx-auto">
-            Trade permissionlessly across 9 sharded zones with optimal path routing, split liquidity, and minimal slippage.
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-5 pb-24 pt-14">
+        {/* Hero */}
+        <section className="mx-auto max-w-2xl text-center animate-fade-up">
+          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="text-primary">// </span>chain-abstraction layer for quai
+          </span>
+          <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-6xl">
+            Nine shards.
+            <br />
+            <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+              One swap.
+            </span>
+          </h1>
+          <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-muted-foreground">
+            qroute unifies liquidity across Quai's execution shards — optimal cross-shard routing,
+            split liquidity, minimal slippage, and AEV rebated back to you.
           </p>
-        </div>
+        </section>
 
-        {/* Swap & Info Panel Grid */}
-        <div className="grid md:grid-cols-2 gap-8 items-start w-full">
-          {/* Main Card (Swap or Pool) */}
-          <div className="flex flex-col items-center gap-6 justify-center">
-            {/* Card Switcher Toggle */}
-            <div className="bg-quai-dark/80 p-1.5 rounded-xl border border-neutral-800 flex shadow-inner">
-              <button
-                onClick={() => setActiveTab("SWAP")}
-                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
-                  activeTab === "SWAP"
-                    ? "bg-quai-orange text-white shadow-md shadow-orange-950/20"
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                Swap
-              </button>
-              <button
-                onClick={() => setActiveTab("POOL")}
-                className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
-                  activeTab === "POOL"
-                    ? "bg-quai-orange text-white shadow-md shadow-orange-950/20"
-                    : "text-neutral-400 hover:text-neutral-200"
-                }`}
-              >
-                Pool
-              </button>
+        {/* Grid */}
+        <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+          {/* Left: swap / pool */}
+          <div className="flex flex-col items-center gap-5">
+            <div className="flex rounded-2xl border border-border bg-surface/70 p-1 backdrop-blur-xl">
+              {(["SWAP", "POOL"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`h-10 rounded-xl px-6 text-sm font-bold transition-all ${
+                    tab === t
+                      ? "bg-primary text-primary-foreground shadow-glow"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {t === "SWAP" ? "Swap" : "Pool"}
+                </button>
+              ))}
             </div>
-
-            {activeTab === "SWAP" ? (
-              <SwapForm onSwapDispatched={handleSwapDispatched} />
-            ) : (
-              <LPForm />
-            )}
+            {tab === "SWAP" ? <SwapForm onSwapDispatched={onSwapDispatched} /> : <LPForm />}
           </div>
 
-          {/* Info Panel */}
-          <div className="bg-quai-gray/50 border border-neutral-900 rounded-2xl p-6 text-left space-y-6">
-            <h3 className="text-md font-bold text-white uppercase tracking-wider text-xs">How it Works</h3>
-            
-            <div className="space-y-4 text-sm leading-relaxed">
-              <div className="flex gap-3">
-                <span className="text-quai-orange font-bold">1.</span>
-                <p className="text-neutral-300">
-                  <strong className="text-white block mb-0.5">Off-Chain Pathfinder</strong>
-                  Computes reserves across all 9 Zone shards to find the optimal trade routing, dynamically evaluating split-paths.
-                </p>
+          {/* Right: shard map + how it works */}
+          <div className="flex w-full flex-col gap-6">
+            <Card className="p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <SectionLabel>shard network</SectionLabel>
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {address ? zone : "not connected"}
+                </span>
               </div>
+              <ShardMap userZone={zone} liquidityZone="cyprus-1" />
+            </Card>
 
-              <div className="flex gap-3">
-                <span className="text-quai-orange font-bold">2.</span>
-                <p className="text-neutral-300">
-                  <strong className="text-white block mb-0.5">Gas-Aware Routing</strong>
-                  Factors in Quai's native Type 1 External Transaction (ETx) fees so you only route cross-shard when it makes financial sense.
-                </p>
+            <Card className="p-6">
+              <div className="mb-4">
+                <SectionLabel>how it works</SectionLabel>
               </div>
-
-              <div className="flex gap-3">
-                <span className="text-quai-orange font-bold">3.</span>
-                <p className="text-neutral-300">
-                  <strong className="text-white block mb-0.5">AEV Internalization</strong>
-                  Our protocol captures cross-shard arbitrage discrepancies directly for the treasury instead of external miners.
-                </p>
+              <div className="space-y-5">
+                {STEPS.map((s) => (
+                  <div key={s.n} className="flex gap-3">
+                    <StepNumber n={s.n} />
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground">{s.title}</h3>
+                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{s.body}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-
-            <div className="border-t border-neutral-900 pt-4 flex justify-between items-center text-xs text-neutral-400">
-              <span>Ecosystem Hub:</span>
-              <span className="font-semibold text-neutral-300">Orchard Testnet</span>
-            </div>
+            </Card>
           </div>
-        </div>
-
-        {/* Active Transaction Tracking Modal */}
-        {activeTxHash && activeRoute && (
-          <TxTracker
-            txHash={activeTxHash}
-            route={activeRoute}
-            onClose={() => {
-              setActiveTxHash(null);
-              setActiveRoute(null);
-            }}
-          />
-        )}
+        </section>
       </main>
 
+      {activeTxHash && activeRoute && (
+        <TxTracker
+          txHash={activeTxHash}
+          route={activeRoute}
+          onClose={() => {
+            setActiveTxHash(null);
+            setActiveRoute(null);
+          }}
+        />
+      )}
+
       {/* Footer */}
-      <footer className="border-t border-neutral-900 py-6 px-6 text-center text-xs text-neutral-500 flex flex-col sm:flex-row justify-between items-center gap-4 bg-quai-dark/20">
-        <p>© 2026 qroute. Built on Quai Network.</p>
-        <div className="flex gap-4">
+      <footer className="border-t border-border bg-background/40">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-5 py-6 text-xs text-muted-foreground sm:flex-row">
+          <p className="font-mono">© 2026 qroute · built on Quai</p>
           <a
             href="https://github.com/Ipramking/qroute-aggregator"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-white transition font-semibold"
+            className="font-semibold transition-colors hover:text-foreground"
           >
-            GitHub Repository
+            GitHub ↗
           </a>
         </div>
       </footer>

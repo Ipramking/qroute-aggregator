@@ -1,184 +1,148 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWeb3Store, TOKENS } from "../store/useWeb3Store";
+import { IS_LIVE } from "../utils/contracts";
+import { Card, StatusDot } from "./ui/primitives";
 
 export default function LPForm() {
   const {
-    address: userAddress,
+    address,
+    reservesLive,
     lpTokenA,
     lpTokenB,
     lpAmountA,
     lpAmountB,
     lpSharesBalance,
-    setLpTokenA,
-    setLpTokenB,
     setLpAmountA,
     setLpAmountB,
     addLiquidity,
-    removeLiquidity
+    removeLiquidity,
+    fetchLpShares,
   } = useWeb3Store();
 
-  const [txStage, setTxStage] = useState<"IDLE" | "APPROVING_A" | "APPROVING_B" | "DEPOSITING" | "WITHDRAWING">("IDLE");
+  const [busy, setBusy] = useState<"IDLE" | "DEPOSIT" | "WITHDRAW">("IDLE");
   const [successTx, setSuccessTx] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleAddLiquidity = async () => {
-    if (!lpAmountA || !userAddress) return;
+  useEffect(() => {
+    fetchLpShares();
+  }, [fetchLpShares, address]);
+
+  const run = async (kind: "DEPOSIT" | "WITHDRAW", fn: () => Promise<string>) => {
     setError(null);
     setSuccessTx(null);
-
+    setBusy(kind);
     try {
-      // addLiquidity handles the token approvals then the atomic router deposit.
-      setTxStage("DEPOSITING");
-      const txHash = await addLiquidity();
-      setSuccessTx(txHash);
+      setSuccessTx(await fn());
     } catch (err: any) {
-      setError(err.message || "Failed to add liquidity.");
+      setError(err?.message || "Transaction failed.");
     } finally {
-      setTxStage("IDLE");
+      setBusy("IDLE");
     }
   };
 
-  const handleRemoveLiquidity = async () => {
-    if (parseFloat(lpSharesBalance) <= 0 || !userAddress) return;
-    setError(null);
-    setSuccessTx(null);
-    setTxStage("WITHDRAWING");
-
-    try {
-      const txHash = await removeLiquidity();
-      setSuccessTx(txHash);
-    } catch (err: any) {
-      setError(err.message || "Failed to withdraw liquidity.");
-    } finally {
-      setTxStage("IDLE");
-    }
-  };
+  const hasShares = parseFloat(lpSharesBalance) > 0;
+  const live = IS_LIVE && reservesLive;
 
   return (
-    <div className="bg-quai-gray rounded-2xl p-6 border border-neutral-800 w-full max-w-md shadow-xl">
-      <h2 className="text-lg font-bold text-white text-left mb-5">Liquidity Pools</h2>
+    <Card className="w-full max-w-md p-6">
+      <div className="mb-5 flex items-center justify-between">
+        <h2 className="font-display text-lg font-bold text-foreground">Provide Liquidity</h2>
+        <StatusDot live={live} label={live ? "Live · Cyprus-1" : "Preview"} />
+      </div>
 
-      {/* User LP Status Card */}
-      <div className="bg-quai-dark/40 border border-neutral-900 rounded-xl p-4 mb-5 text-left flex justify-between items-center">
-        <div>
-          <span className="text-xs text-neutral-400 font-semibold block mb-0.5">Your Pool Shares</span>
-          <span className="text-xl font-bold text-white font-mono">{lpSharesBalance} LPT</span>
+      {/* Position */}
+      <div className="mb-5 flex items-center justify-between rounded-2xl border border-border bg-surface-2/50 p-4">
+        <div className="text-left">
+          <span className="block font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            Your position
+          </span>
+          <span className="font-mono text-xl font-bold text-foreground tnum">
+            {lpSharesBalance} <span className="text-sm text-muted-foreground">QR-LP</span>
+          </span>
         </div>
-        {parseFloat(lpSharesBalance) > 0 && (
+        {hasShares && (
           <button
-            onClick={handleRemoveLiquidity}
-            disabled={txStage !== "IDLE"}
-            className="text-xs bg-red-950/20 text-red-400 hover:bg-red-900/30 border border-red-900/50 font-bold px-3 py-1.5 rounded-lg transition"
+            onClick={() => run("WITHDRAW", removeLiquidity)}
+            disabled={busy !== "IDLE"}
+            className="h-11 rounded-xl border border-danger/40 bg-danger/10 px-4 text-xs font-bold text-danger transition hover:bg-danger/20 disabled:opacity-50"
           >
-            {txStage === "WITHDRAWING" ? "Withdrawing..." : "Withdraw All"}
+            {busy === "WITHDRAW" ? "Withdrawing…" : "Withdraw all"}
           </button>
         )}
       </div>
 
-      <div className="space-y-4">
-        {/* Token A Input */}
-        <div className="bg-quai-dark p-4 rounded-xl border border-neutral-900">
-          <div className="flex justify-between mb-2">
-            <span className="text-xs text-neutral-400 font-medium">Input Token 1</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <input
-              type="text"
-              placeholder="0.0"
-              value={lpAmountA}
-              onChange={(e) => setLpAmountA(e.target.value)}
-              className="bg-transparent text-2xl font-bold text-white outline-none w-2/3"
-            />
-            <select
-              value={lpTokenA.symbol}
-              onChange={(e) => setLpTokenA(TOKENS.find(t => t.symbol === e.target.value)!)}
-              className="bg-neutral-800 text-white rounded-lg p-2 font-semibold text-sm outline-none border border-neutral-700"
-            >
-              {TOKENS.map(t => <option key={t.symbol} value={t.symbol}>{t.symbol}</option>)}
-            </select>
+      <div className="space-y-1.5">
+        <LpInput label={`Deposit ${lpTokenA.symbol}`} value={lpAmountA} onChange={setLpAmountA} symbol={lpTokenA.symbol} />
+        <div className="flex justify-center">
+          <div className="-my-3 flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface text-lg text-muted-foreground">
+            +
           </div>
         </div>
+        <LpInput label={`Deposit ${lpTokenB.symbol}`} value={lpAmountB} onChange={setLpAmountB} symbol={lpTokenB.symbol} />
+      </div>
 
-        {/* Plus Icon */}
-        <div className="flex justify-center -my-2">
-          <div className="bg-neutral-800 p-2 rounded-lg border border-neutral-700 font-bold text-sm">
-            ➕
-          </div>
+      <div className="mt-4 flex items-center justify-between rounded-xl border border-border bg-background/40 px-4 py-2.5 font-mono text-[11px] text-muted-foreground">
+        <span>Pool fee tier</span>
+        <span className="text-foreground">0.30%</span>
+      </div>
+
+      {error && (
+        <div className="mt-4 rounded-xl border border-danger/40 bg-danger/10 px-4 py-2.5 text-left text-xs text-danger">
+          {error}
         </div>
-
-        {/* Token B Input */}
-        <div className="bg-quai-dark p-4 rounded-xl border border-neutral-900">
-          <div className="flex justify-between mb-2">
-            <span className="text-xs text-neutral-400 font-medium">Input Token 2</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <input
-              type="text"
-              placeholder="0.0"
-              value={lpAmountB}
-              onChange={(e) => setLpAmountB(e.target.value)}
-              className="bg-transparent text-2xl font-bold text-white outline-none w-2/3"
-            />
-            <select
-              value={lpTokenB.symbol}
-              onChange={(e) => setLpTokenB(TOKENS.find(t => t.symbol === e.target.value)!)}
-              className="bg-neutral-800 text-white rounded-lg p-2 font-semibold text-sm outline-none border border-neutral-700"
-            >
-              {TOKENS.map(t => <option key={t.symbol} value={t.symbol}>{t.symbol}</option>)}
-            </select>
-          </div>
+      )}
+      {successTx && (
+        <div className="mt-4 truncate rounded-xl border border-success/40 bg-success/10 px-4 py-2.5 text-left font-mono text-xs text-success">
+          ✓ {successTx}
         </div>
+      )}
 
-        {/* Info panel */}
-        {lpAmountA && (
-          <div className="bg-neutral-950/40 p-4 rounded-xl border border-neutral-900 text-xs text-neutral-400 space-y-2 text-left">
-            <div className="flex justify-between">
-              <span>Expected Pool Share:</span>
-              <span className="text-neutral-200 font-semibold">~0.15%</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Pool Fee Tier:</span>
-              <span className="text-neutral-200 font-semibold">0.3% pool fee</span>
-            </div>
-          </div>
-        )}
+      <button
+        onClick={() => run("DEPOSIT", addLiquidity)}
+        disabled={!lpAmountA || !address || busy !== "IDLE"}
+        className={`mt-4 h-14 w-full rounded-2xl font-bold transition-all active:scale-[0.99] ${
+          !address
+            ? "cursor-not-allowed border border-border bg-surface-2 text-muted-foreground"
+            : !lpAmountA
+            ? "cursor-not-allowed border border-primary/20 bg-primary/10 text-primary/40"
+            : "bg-primary text-primary-foreground shadow-glow hover:brightness-110"
+        }`}
+      >
+        {!address ? "Connect wallet" : busy === "DEPOSIT" ? "Adding liquidity…" : "Add liquidity"}
+      </button>
+    </Card>
+  );
+}
 
-        {error && (
-          <div className="bg-red-950/20 text-red-400 border border-red-900/50 px-4 py-2.5 rounded-xl text-xs text-left">
-            ⚠️ {error}
-          </div>
-        )}
-
-        {successTx && (
-          <div className="bg-green-950/20 text-green-400 border border-green-900/50 px-4 py-2.5 rounded-xl text-xs text-left font-mono truncate">
-            ✓ Success! Tx: {successTx}
-          </div>
-        )}
-
-        {/* Deposit Button */}
-        <button
-          onClick={handleAddLiquidity}
-          disabled={!lpAmountA || !userAddress || txStage !== "IDLE"}
-          className={`w-full py-4 rounded-xl font-bold transition text-sm ${
-            !userAddress
-              ? "bg-neutral-800 text-neutral-500 cursor-not-allowed border border-neutral-700"
-              : !lpAmountA
-              ? "bg-quai-orange/20 text-quai-orange/40 cursor-not-allowed border border-quai-orange/10"
-              : "bg-quai-orange hover:bg-orange-600 text-white shadow-md shadow-orange-950/25"
-          }`}
-        >
-          {!userAddress
-            ? "Connect Wallet to Provide Liquidity"
-            : txStage === "APPROVING_A"
-            ? `Approving ${lpTokenA.symbol}...`
-            : txStage === "APPROVING_B"
-            ? `Approving ${lpTokenB.symbol}...`
-            : txStage === "DEPOSITING"
-            ? "Adding Liquidity..."
-            : "Add Liquidity"}
-        </button>
+function LpInput({
+  label,
+  value,
+  onChange,
+  symbol,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  symbol: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-surface-2/50 p-4">
+      <span className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+        {label}
+      </span>
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <input
+          inputMode="decimal"
+          placeholder="0.0"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full min-w-0 bg-transparent font-display text-2xl font-bold text-foreground outline-none placeholder:text-muted-foreground/40 tnum"
+        />
+        <span className="shrink-0 rounded-xl border border-border bg-surface px-4 py-2.5 font-mono text-sm font-bold text-foreground">
+          {symbol}
+        </span>
       </div>
     </div>
   );

@@ -4,105 +4,108 @@ import { useEffect, useState } from "react";
 import { useWeb3Store } from "../store/useWeb3Store";
 import { shortenAddress, getZoneForAddress } from "../utils/quai";
 
-export default function WalletConnect() {
-  const {
-    address,
-    zone,
-    hasPelagus,
-    setWallet,
-    clearWallet,
-    setHasPelagus
-  } = useWeb3Store();
+const PELAGUS_URL = "https://pelaguswallet.io/";
 
+export default function WalletConnect() {
+  const { address, zone, hasPelagus, setWallet, clearWallet, setHasPelagus } = useWeb3Store();
   const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
-    // Check if Pelagus wallet is installed
-    if (typeof window !== "undefined" && (window as any).pelagus) {
-      setHasPelagus(true);
-      
-      // Auto-connect if already authorized
-      (window as any).pelagus
-        .request({ method: "quai_accounts" })
-        .then((accounts: string[]) => {
-          if (accounts && accounts.length > 0) {
-            handleConnection(accounts[0]);
-          }
-        })
-        .catch(() => {});
+    if (typeof window === "undefined") return;
 
-      // Set up account change listener
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts && accounts.length > 0) {
-          handleConnection(accounts[0]);
-        } else {
-          disconnect();
-        }
-      };
+    const handleConnection = (addr: string) => setWallet(addr, getZoneForAddress(addr));
+    const onAccountsChanged = (accounts: string[]) => {
+      if (accounts && accounts.length > 0) handleConnection(accounts[0]);
+      else clearWallet();
+    };
 
-      (window as any).pelagus.on("accountsChanged", handleAccountsChanged);
+    // Pelagus injects asynchronously — poll briefly instead of checking once.
+    let tries = 0;
+    const detect = () => {
+      const pelagus = (window as any).pelagus;
+      if (pelagus) {
+        setHasPelagus(true);
+        pelagus
+          .request({ method: "quai_accounts" })
+          .then((accounts: string[]) => {
+            if (accounts && accounts.length > 0) handleConnection(accounts[0]);
+          })
+          .catch(() => {});
+        pelagus.on?.("accountsChanged", onAccountsChanged);
+        return true;
+      }
+      return false;
+    };
 
-      return () => {
-        (window as any).pelagus.removeListener("accountsChanged", handleAccountsChanged);
-      };
+    if (!detect()) {
+      const timer = setInterval(() => {
+        tries += 1;
+        if (detect() || tries > 20) clearInterval(timer); // ~3s
+      }, 150);
+      return () => clearInterval(timer);
     }
-  }, [setHasPelagus]);
 
-  const handleConnection = (addr: string) => {
-    const mappedZone = getZoneForAddress(addr);
-    setWallet(addr, mappedZone);
-  };
+    return () => {
+      (window as any).pelagus?.removeListener?.("accountsChanged", onAccountsChanged);
+    };
+  }, [setHasPelagus, setWallet, clearWallet]);
 
   const connect = async () => {
-    if (isConnecting || !hasPelagus) return;
+    if (isConnecting) return;
+    const pelagus = (window as any).pelagus;
+    if (!pelagus) {
+      window.open(PELAGUS_URL, "_blank", "noopener,noreferrer");
+      return;
+    }
     setIsConnecting(true);
-
     try {
-      const accounts = await (window as any).pelagus.request({
-        method: "quai_requestAccounts",
-      });
-      if (accounts && accounts.length > 0) {
-        handleConnection(accounts[0]);
-      }
-    } catch (error) {
-      console.error("User rejected Pelagus wallet connection", error);
+      const accounts = await pelagus.request({ method: "quai_requestAccounts" });
+      if (accounts && accounts.length > 0) setWallet(accounts[0], getZoneForAddress(accounts[0]));
+    } catch (err) {
+      console.error("Pelagus connection rejected", err);
     } finally {
       setIsConnecting(false);
     }
   };
 
-  const disconnect = () => {
-    clearWallet();
-  };
+  if (address) {
+    return (
+      <div className="flex items-center gap-3 rounded-xl border border-border bg-surface/70 px-3 py-2 backdrop-blur-xl">
+        <span className="h-2 w-2 rounded-full bg-success animate-pulse-glow" />
+        <div className="flex flex-col text-left leading-tight">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            {zone}
+          </span>
+          <span className="font-mono text-sm font-semibold text-foreground tnum">
+            {shortenAddress(address)}
+          </span>
+        </div>
+        <button
+          onClick={clearWallet}
+          className="ml-1 flex h-9 min-w-[44px] items-center justify-center rounded-lg px-2 text-xs font-semibold text-danger transition-colors hover:bg-danger/10"
+        >
+          Exit
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex items-center gap-3">
-      {address ? (
-        <div className="flex items-center gap-3 bg-quai-gray px-4 py-2 rounded-xl border border-neutral-800">
-          <div className="flex flex-col text-left">
-            <span className="text-xs text-neutral-400 font-medium">Zone: {zone}</span>
-            <span className="text-sm font-semibold text-white">{shortenAddress(address)}</span>
-          </div>
-          <button
-            onClick={disconnect}
-            className="text-xs text-red-500 hover:text-red-400 font-bold transition ml-2"
-          >
-            Disconnect
-          </button>
-        </div>
+    <button
+      onClick={connect}
+      disabled={isConnecting}
+      className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-glow transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+    >
+      {isConnecting ? (
+        <>
+          <span className="h-2 w-2 animate-ping rounded-full bg-primary-foreground" />
+          Connecting…
+        </>
+      ) : hasPelagus ? (
+        "Connect Pelagus"
       ) : (
-        <button
-          onClick={connect}
-          disabled={!hasPelagus}
-          className={`px-5 py-2.5 rounded-xl font-bold transition text-sm ${
-            hasPelagus
-              ? "bg-quai-orange hover:bg-orange-600 text-white shadow-md shadow-orange-950/20"
-              : "bg-neutral-800 text-neutral-500 cursor-not-allowed border border-neutral-700"
-          }`}
-        >
-          {hasPelagus ? "Connect Pelagus" : "Pelagus Wallet Required"}
-        </button>
+        "Install Pelagus ↗"
       )}
-    </div>
+    </button>
   );
 }
