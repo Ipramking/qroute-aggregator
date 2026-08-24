@@ -12,6 +12,12 @@ export const metadata = {
     "One-signature swaps across Quai's 9 execution shards. Optimal cross-shard routing, split liquidity, and AEV rebated to you.",
 };
 
+export const viewport = {
+  themeColor: "#0A0A0B",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>

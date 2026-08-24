@@ -8,6 +8,7 @@ import TxTracker from "../components/TxTracker";
 import ShardMap from "../components/ShardMap";
 import { Card, SectionLabel, StepNumber } from "../components/ui/primitives";
 import { useWeb3Store } from "../store/useWeb3Store";
+import { LIQUIDITY_ZONES } from "../utils/contracts";
 import { OptimizedRoute } from "qroute-aggregator-routing-engine";
 
 const STEPS = [
@@ -43,7 +44,7 @@ export default function Home() {
     <>
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-4">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary shadow-glow">
               <span className="text-lg font-bold">⌁</span>
@@ -59,7 +60,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-5 pb-24 pt-14">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-12 px-4 pb-24 pt-14 sm:px-6">
         {/* Hero */}
         <section className="mx-auto max-w-2xl text-center animate-fade-up">
           <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
@@ -87,7 +88,7 @@ export default function Home() {
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`h-10 rounded-xl px-6 text-sm font-bold transition-all ${
+                  className={`h-11 rounded-xl px-6 text-sm font-bold transition-all ${
                     tab === t
                       ? "bg-primary text-primary-foreground shadow-glow"
                       : "text-muted-foreground hover:text-foreground"
@@ -109,7 +110,7 @@ export default function Home() {
                   {address ? zone : "not connected"}
                 </span>
               </div>
-              <ShardMap userZone={zone} liquidityZone="cyprus-1" />
+              <ShardMap userZone={zone} liquidityZones={LIQUIDITY_ZONES} />
             </Card>
 
             <Card className="p-6">
@@ -145,7 +146,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="border-t border-border bg-background/40">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-5 py-6 text-xs text-muted-foreground sm:flex-row">
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-muted-foreground sm:flex-row sm:px-6">
           <p className="font-mono">© 2026 qroute · built on Quai</p>
           <a
             href="https://github.com/Ipramking/qroute-aggregator"

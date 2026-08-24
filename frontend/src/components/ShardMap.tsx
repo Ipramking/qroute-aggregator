@@ -14,10 +14,10 @@ const short = (z: string) => z.split("-")[1];
  */
 export default function ShardMap({
   userZone,
-  liquidityZone = "cyprus-1",
+  liquidityZones = ["cyprus-1"],
 }: {
   userZone?: string | null;
-  liquidityZone?: string;
+  liquidityZones?: string[];
 }) {
   return (
     <div className="space-y-3">
@@ -29,7 +29,7 @@ export default function ShardMap({
             </div>
             <div className="space-y-1.5">
               {region.zones.map((zone) => {
-                const isLiquidity = zone === liquidityZone;
+                const isLiquidity = liquidityZones.includes(zone);
                 const isUser = zone === userZone;
                 return (
                   <div

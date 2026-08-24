@@ -19,6 +19,11 @@ export const ZONE = (deployed as any).zone || "cyprus-1";
 // the UI runs in a labeled preview mode instead of hitting fake addresses.
 export const IS_LIVE = Boolean((deployed as any).rpcUrl && ADDRESSES.registry);
 
+// Zones with liquidity: just the real pool when live; the demo spread in preview.
+export const LIQUIDITY_ZONES = IS_LIVE
+  ? ["cyprus-1"]
+  : ["cyprus-1", "paxos-1", "ethiopia-2"];
+
 export const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function allowance(address,address) view returns (uint256)",

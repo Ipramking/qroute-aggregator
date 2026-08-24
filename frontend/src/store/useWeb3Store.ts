@@ -30,6 +30,16 @@ const DECIMALS = 18;
 const qiL = ADDRESSES.qi.toLowerCase();
 const usdcL = ADDRESSES.usdc.toLowerCase();
 
+// Illustrative multi-shard liquidity used ONLY in Preview mode so the real
+// pathfinder can demonstrate cross-shard + split routing before the on-chain
+// pools exist. Depth varies by shard, so large trades genuinely route across
+// shards (the engine's split logic decides — nothing is faked).
+const DEMO_POOLS = [
+  { zone: "cyprus-1", r0: 200_000n, r1: 200_000n, pair: "0x00000000000000000000000000000000000c0001" },
+  { zone: "paxos-1", r0: 240_000n, r1: 240_000n, pair: "0x00000000000000000000000000000000000c0002" },
+  { zone: "ethiopia-2", r0: 180_000n, r1: 180_000n, pair: "0x00000000000000000000000000000000000c0003" },
+];
+
 interface Web3State {
   // Wallet
   address: string | null;
@@ -156,20 +166,32 @@ export const useWeb3Store = create<Web3State>((set, get) => ({
 
     try {
       const graph = new LiquidityGraph();
-      // Use live reserves when available; otherwise a neutral preview pool.
-      const token0 = pairState ? pairState.token0 : qiL < usdcL ? qiL : usdcL;
-      const token1 = token0 === qiL ? usdcL : qiL;
-      const reserve0 = pairState ? pairState.reserve0 : 100000n * 10n ** 18n;
-      const reserve1 = pairState ? pairState.reserve1 : 100000n * 10n ** 18n;
+      const t0 = qiL < usdcL ? qiL : usdcL;
+      const t1 = t0 === qiL ? usdcL : qiL;
 
-      graph.registerPool({
-        pairAddress: ADDRESSES.pair,
-        token0,
-        token1,
-        reserve0,
-        reserve1,
-        zone: ZONE,
-      });
+      if (IS_LIVE && pairState) {
+        // Single real Cyprus-1 pool from live on-chain reserves.
+        graph.registerPool({
+          pairAddress: ADDRESSES.pair,
+          token0: pairState.token0,
+          token1: pairState.token0 === qiL ? usdcL : qiL,
+          reserve0: pairState.reserve0,
+          reserve1: pairState.reserve1,
+          zone: ZONE,
+        });
+      } else {
+        // Preview: multi-shard demo liquidity for cross-shard/split routing.
+        for (const p of DEMO_POOLS) {
+          graph.registerPool({
+            pairAddress: p.pair,
+            token0: t0,
+            token1: t1,
+            reserve0: p.r0 * 10n ** 18n,
+            reserve1: p.r1 * 10n ** 18n,
+            zone: p.zone,
+          });
+        }
+      }
 
       const router = new DEXRouter(graph);
       const parsedAmountIn = quais.parseUnits(amountIn, DECIMALS);

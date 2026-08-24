@@ -154,7 +154,7 @@ export default function SwapForm({ onSwapDispatched }: SwapFormProps) {
             <button
               key={bips}
               onClick={() => setSlippageBips(bips)}
-              className={`rounded-lg border px-2.5 py-1 font-mono text-xs font-semibold transition ${
+              className={`rounded-lg border px-3 py-2 font-mono text-xs font-semibold transition ${
                 slippageBips === bips
                   ? "border-primary/50 bg-primary/15 text-primary"
                   : "border-border text-muted-foreground hover:text-foreground"
