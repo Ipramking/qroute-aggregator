@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import WalletConnect from "../components/WalletConnect";
 import SwapForm from "../components/SwapForm";
 import LPForm from "../components/LPForm";
@@ -56,7 +57,15 @@ export default function Home() {
               </span>
             </div>
           </div>
-          <WalletConnect />
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link
+              href="/analytics"
+              className="hidden font-mono text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground sm:block"
+            >
+              Analytics
+            </Link>
+            <WalletConnect />
+          </div>
         </div>
       </header>
 
