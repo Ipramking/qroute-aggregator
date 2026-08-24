@@ -20,9 +20,11 @@ export class ArbitrageMonitor {
   private activePools: DEXPool[] = [];
   private listeners: ((event: SwapEvent) => void)[] = [];
   private mempoolListeners: ((tx: PendingSwapTx) => void)[] = [];
+  private routerAddress: string;
 
-  constructor(pools: DEXPool[]) {
+  constructor(pools: DEXPool[], routerAddress?: string) {
     this.activePools = pools;
+    this.routerAddress = (routerAddress || "0x8888888888888888888888888888888888888888").toLowerCase();
   }
 
   /**
@@ -64,9 +66,8 @@ export class ArbitrageMonitor {
   }
 
   private isRouterTx(tx: any): boolean {
-    // Check if the transaction interacts with any of our deployed Router addresses
-    const routerAddress = "0x8888888888888888888888888888888888888888".toLowerCase();
-    return tx.to.toLowerCase() === routerAddress;
+    // Check if the transaction interacts with our configured Router address.
+    return tx.to.toLowerCase() === this.routerAddress;
   }
 
   private parseRouterTxPayload(tx: any): PendingSwapTx | null {
