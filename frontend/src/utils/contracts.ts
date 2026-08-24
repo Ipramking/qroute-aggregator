@@ -1,5 +1,6 @@
 import { quais } from "quais";
 import deployed from "../deployed_addresses.json";
+import { getInjectedProvider } from "./wallet";
 
 // Addresses are populated by contracts/scripts/deploy.js on a real deployment.
 export const ADDRESSES = {
@@ -46,8 +47,8 @@ export function getReadProvider() {
 }
 
 export function getSigner() {
-  const injected = (globalThis as any).pelagus;
-  if (!injected) throw new Error("Pelagus wallet not found.");
+  const injected = getInjectedProvider();
+  if (!injected) throw new Error("No Quai wallet found. Install Pelagus.");
   const provider = new quais.BrowserProvider(injected);
   return provider.getSigner();
 }

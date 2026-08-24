@@ -1,68 +1,78 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWeb3Store } from "../store/useWeb3Store";
 import { shortenAddress, getZoneForAddress } from "../utils/quai";
+import { initWalletDiscovery, getInjectedProvider, requestAccounts } from "../utils/wallet";
 
 const PELAGUS_URL = "https://pelaguswallet.io/";
 
 export default function WalletConnect() {
   const { address, zone, hasPelagus, setWallet, clearWallet, setHasPelagus } = useWeb3Store();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const providerRef = useRef<any>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    initWalletDiscovery();
 
-    const handleConnection = (addr: string) => setWallet(addr, getZoneForAddress(addr));
+    let stopped = false;
     const onAccountsChanged = (accounts: string[]) => {
-      if (accounts && accounts.length > 0) handleConnection(accounts[0]);
+      if (accounts?.length) setWallet(accounts[0], getZoneForAddress(accounts[0]));
       else clearWallet();
     };
 
-    // Pelagus injects asynchronously — poll briefly instead of checking once.
-    let tries = 0;
-    const detect = () => {
-      const pelagus = (window as any).pelagus;
-      if (pelagus) {
-        setHasPelagus(true);
-        pelagus
-          .request({ method: "quai_accounts" })
-          .then((accounts: string[]) => {
-            if (accounts && accounts.length > 0) handleConnection(accounts[0]);
+    const bind = () => {
+      const p = getInjectedProvider();
+      if (!p) return false;
+      setHasPelagus(true);
+      if (!providerRef.current) {
+        providerRef.current = p;
+        requestAccounts(p, false)
+          .then((accts) => {
+            if (!stopped && accts?.length) onAccountsChanged(accts);
           })
           .catch(() => {});
-        pelagus.on?.("accountsChanged", onAccountsChanged);
-        return true;
+        p.on?.("accountsChanged", onAccountsChanged);
       }
-      return false;
+      return true;
     };
 
-    if (!detect()) {
+    // Providers can announce a little after load — poll for ~5s.
+    if (!bind()) {
+      let tries = 0;
       const timer = setInterval(() => {
         tries += 1;
-        if (detect() || tries > 20) clearInterval(timer); // ~3s
-      }, 150);
-      return () => clearInterval(timer);
+        if (bind() || tries > 25) clearInterval(timer);
+      }, 200);
+      return () => {
+        stopped = true;
+        clearInterval(timer);
+        providerRef.current?.removeListener?.("accountsChanged", onAccountsChanged);
+      };
     }
-
     return () => {
-      (window as any).pelagus?.removeListener?.("accountsChanged", onAccountsChanged);
+      stopped = true;
+      providerRef.current?.removeListener?.("accountsChanged", onAccountsChanged);
     };
   }, [setHasPelagus, setWallet, clearWallet]);
 
   const connect = async () => {
     if (isConnecting) return;
-    const pelagus = (window as any).pelagus;
-    if (!pelagus) {
+    setErr(null);
+    const provider = getInjectedProvider();
+    if (!provider) {
       window.open(PELAGUS_URL, "_blank", "noopener,noreferrer");
       return;
     }
     setIsConnecting(true);
     try {
-      const accounts = await pelagus.request({ method: "quai_requestAccounts" });
-      if (accounts && accounts.length > 0) setWallet(accounts[0], getZoneForAddress(accounts[0]));
-    } catch (err) {
-      console.error("Pelagus connection rejected", err);
+      const accounts = await requestAccounts(provider, true);
+      if (accounts?.length) setWallet(accounts[0], getZoneForAddress(accounts[0]));
+      else setErr("No account returned — unlock Pelagus and retry.");
+    } catch (e: any) {
+      setErr(e?.message || "Connection rejected.");
     } finally {
       setIsConnecting(false);
     }
@@ -91,21 +101,28 @@ export default function WalletConnect() {
   }
 
   return (
-    <button
-      onClick={connect}
-      disabled={isConnecting}
-      className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-glow transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
-    >
-      {isConnecting ? (
-        <>
-          <span className="h-2 w-2 animate-ping rounded-full bg-primary-foreground" />
-          Connecting…
-        </>
-      ) : hasPelagus ? (
-        "Connect Pelagus"
-      ) : (
-        "Install Pelagus ↗"
+    <div className="relative">
+      <button
+        onClick={connect}
+        disabled={isConnecting}
+        className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-glow transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-60"
+      >
+        {isConnecting ? (
+          <>
+            <span className="h-2 w-2 animate-ping rounded-full bg-primary-foreground" />
+            Connecting…
+          </>
+        ) : hasPelagus ? (
+          "Connect Pelagus"
+        ) : (
+          "Install Pelagus ↗"
+        )}
+      </button>
+      {err && (
+        <p className="absolute right-0 top-full mt-2 w-56 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-right text-[11px] text-danger">
+          {err}
+        </p>
       )}
-    </button>
+    </div>
   );
 }
