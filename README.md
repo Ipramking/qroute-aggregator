@@ -32,7 +32,8 @@ in Quai's native cross-shard (ETx) gas so it only routes across shards when it p
 | `contracts` | Hardhat · Solidity 0.8.20 · OpenZeppelin | AMM pair, pair registry, hardened router, test token |
 | `routing-engine` | TypeScript · quais | Off-chain pathfinder — reserves graph, gas-aware optimal/split routing |
 | `frontend` | Next.js 14 · Tailwind · Zustand · quais | Swap/LP UI, Pelagus (EIP-6963) wallet, live shard map + route graph |
-| `arbitrage-bot` | TypeScript | AEV back-running bot (monitor/executor) |
+| `arbitrage-bot` | TypeScript | AEV back-running bot (scanner/monitor/executor) |
+| `relayer` | TypeScript · quais | Cross-shard bridge worker: watches `LogExternalSwapPending`, relays a nonce-gated `onTokenBridgeReceived` to the destination shard |
 
 ## Security
 

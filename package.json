@@ -5,10 +5,11 @@
     "contracts",
     "routing-engine",
     "frontend",
-    "arbitrage-bot"
+    "arbitrage-bot",
+    "relayer"
   ],
   "scripts": {
     "build": "npm run build -w routing-engine && npm run build -w frontend",
-    "test": "npm run test -w contracts && npm run test -w routing-engine && npm run test -w arbitrage-bot"
+    "test": "npm run test -w contracts && npm run test -w routing-engine && npm run test -w arbitrage-bot && npm run test -w relayer"
   }
 }

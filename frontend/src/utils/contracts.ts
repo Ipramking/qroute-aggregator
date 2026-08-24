@@ -42,6 +42,7 @@ export const PAIR_ABI = [
 
 export const ROUTER_ABI = [
   "function localSwap(address tokenIn,address tokenOut,uint256 amountIn,uint256 minAmountOut,address to,uint256 deadline) returns (uint256)",
+  "function swapAndFlagCrossShard(address tokenIn,address tokenOut,uint256 amountIn,uint256 minAmountOut,address to,uint256 destinationShard,uint256 deadline) returns (uint256)",
   "function addLiquidity(address tokenA,address tokenB,uint256 amountA,uint256 amountB,address to,uint256 deadline) returns (uint256)",
   "function removeLiquidity(address tokenA,address tokenB,uint256 liquidity,address to,uint256 deadline) returns (uint256,uint256)",
   "function getAmountOut(uint256,uint256,uint256) view returns (uint256)",
