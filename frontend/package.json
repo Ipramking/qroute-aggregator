@@ -9,7 +9,9 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@sentry/browser": "^10.70.0",
     "next": "^14.1.0",
+    "posthog-js": "^1.418.10",
     "qroute-aggregator-routing-engine": "*",
     "quais": "^1.0.0-alpha.56",
     "react": "^18.2.0",

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useWeb3Store, TOKENS } from "../store/useWeb3Store";
 import { IS_LIVE } from "../utils/contracts";
+import { track, captureError } from "../utils/analytics";
 import { Card, StatusDot } from "./ui/primitives";
 
 export default function LPForm() {
@@ -35,8 +36,10 @@ export default function LPForm() {
     setBusy(kind);
     try {
       setSuccessTx(await fn());
+      track(kind === "DEPOSIT" ? "liquidity_added" : "liquidity_removed");
     } catch (err: any) {
       setError(err?.message || "Transaction failed.");
+      captureError(err, { scope: kind });
     } finally {
       setBusy("IDLE");
     }

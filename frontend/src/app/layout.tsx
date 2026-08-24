@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
 import AmbientBackground from "../components/AmbientBackground";
+import Analytics from "../components/Analytics";
 
 const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${display.variable} ${sans.variable} ${mono.variable}`}>
       <body className="grain min-h-screen bg-background font-sans text-foreground antialiased selection:bg-primary/30">
         <AmbientBackground />
+        <Analytics />
         <div className="relative z-10 flex min-h-screen flex-col">{children}</div>
       </body>
     </html>

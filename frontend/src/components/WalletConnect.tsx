@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useWeb3Store } from "../store/useWeb3Store";
 import { shortenAddress, getZoneForAddress } from "../utils/quai";
 import { initWalletDiscovery, getInjectedProvider, requestAccounts } from "../utils/wallet";
+import { track, captureError } from "../utils/analytics";
 
 const PELAGUS_URL = "https://pelaguswallet.io/";
 
@@ -69,10 +70,15 @@ export default function WalletConnect() {
     setIsConnecting(true);
     try {
       const accounts = await requestAccounts(provider, true);
-      if (accounts?.length) setWallet(accounts[0], getZoneForAddress(accounts[0]));
-      else setErr("No account returned — unlock Pelagus and retry.");
+      if (accounts?.length) {
+        setWallet(accounts[0], getZoneForAddress(accounts[0]));
+        track("wallet_connected", { zone: getZoneForAddress(accounts[0]) });
+      } else {
+        setErr("No account returned — unlock Pelagus and retry.");
+      }
     } catch (e: any) {
       setErr(e?.message || "Connection rejected.");
+      captureError(e, { scope: "wallet_connect" });
     } finally {
       setIsConnecting(false);
     }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { quais } from "quais";
 import { useWeb3Store, TOKENS } from "../store/useWeb3Store";
 import { IS_LIVE } from "../utils/contracts";
+import { track, captureError } from "../utils/analytics";
 import { Card, StatusDot } from "./ui/primitives";
 import RouteGraph from "./RouteGraph";
 import { OptimizedRoute } from "qroute-aggregator-routing-engine";
@@ -53,9 +54,11 @@ export default function SwapForm({ onSwapDispatched }: SwapFormProps) {
     setLocalError(null);
     try {
       const txHash = await executeSwap();
+      track("swap_executed", { tokenIn: tokenIn.symbol, tokenOut: tokenOut.symbol, amountIn });
       onSwapDispatched(txHash, route);
     } catch (err: any) {
       setLocalError(err?.message || "Transaction failed.");
+      captureError(err, { scope: "swap" });
     } finally {
       setIsLoading(false);
     }
