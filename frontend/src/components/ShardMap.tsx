@@ -2,15 +2,15 @@
 
 const REGIONS: { name: string; zones: string[] }[] = [
   { name: "Cyprus", zones: ["cyprus-1", "cyprus-2", "cyprus-3"] },
-  { name: "Ethiopia", zones: ["ethiopia-1", "ethiopia-2", "ethiopia-3"] },
   { name: "Paxos", zones: ["paxos-1", "paxos-2", "paxos-3"] },
+  { name: "Hydra", zones: ["hydra-1", "hydra-2", "hydra-3"] },
 ];
 
 const short = (z: string) => z.split("-")[1];
 
 /**
- * Live map of Quai's 9 execution shards. The zone holding liquidity pulses
- * orange; the user's connected zone rings cyan. Signature visual.
+ * Map of Quai's execution zones (up to 9; Cyprus-1 live today, others forward-looking).
+ * Zones holding liquidity pulse orange; the user's connected zone rings cyan.
  */
 export default function ShardMap({
   userZone,

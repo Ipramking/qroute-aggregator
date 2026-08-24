@@ -2,7 +2,7 @@
 
 import { getShardStats, fmtUsd, ShardStat } from "../utils/analyticsData";
 
-const REGIONS = ["Cyprus", "Ethiopia", "Paxos"];
+const REGIONS = ["Cyprus", "Paxos", "Hydra"];
 
 export default function ShardHeatmap() {
   const stats = getShardStats();

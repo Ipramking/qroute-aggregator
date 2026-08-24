@@ -22,7 +22,7 @@ export const IS_LIVE = Boolean((deployed as any).rpcUrl && ADDRESSES.registry);
 // Zones with liquidity: just the real pool when live; the demo spread in preview.
 export const LIQUIDITY_ZONES = IS_LIVE
   ? ["cyprus-1"]
-  : ["cyprus-1", "paxos-1", "ethiopia-2"];
+  : ["cyprus-1", "paxos-1", "hydra-1"];
 
 export const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",

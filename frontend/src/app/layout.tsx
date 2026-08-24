@@ -8,9 +8,9 @@ const sans = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 export const metadata = {
-  title: "qroute — Chain-abstraction layer for Quai",
+  title: "qroute — Cross-shard routing infrastructure for Quai",
   description:
-    "One-signature swaps across Quai's 9 execution shards. Optimal cross-shard routing, split liquidity, and AEV rebated to you.",
+    "Routing infrastructure for Quai's sharded future. As Quai scales into new zones, qroute makes them feel like one chain — ETX-native cross-shard routing, split liquidity, gas-aware net-output scoring. Cyprus-1 live today.",
 };
 
 export const viewport = {

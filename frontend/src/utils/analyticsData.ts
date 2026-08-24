@@ -10,22 +10,23 @@ export interface ShardStat {
 
 const REGION_OF: Record<string, string> = {
   cyprus: "Cyprus",
-  ethiopia: "Ethiopia",
   paxos: "Paxos",
+  hydra: "Hydra",
 };
 
-// Illustrative network state (Preview). Depths mirror the demo pools used by the
-// pathfinder. When live, this would be aggregated from on-chain reserves + events.
+// Illustrative FUTURE multi-shard state (Preview). Only Cyprus-1 is live on Quai
+// today; the other zones activate via demand-triggered sharding events. When live,
+// these would aggregate from on-chain reserves + events.
 const DEMO_STATS: ShardStat[] = [
   { zone: "cyprus-1", tvlUsd: 400_000, volume24hUsd: 128_000, pools: 1 },
   { zone: "cyprus-2", tvlUsd: 0, volume24hUsd: 0, pools: 0 },
   { zone: "cyprus-3", tvlUsd: 0, volume24hUsd: 0, pools: 0 },
-  { zone: "ethiopia-1", tvlUsd: 0, volume24hUsd: 0, pools: 0 },
-  { zone: "ethiopia-2", tvlUsd: 360_000, volume24hUsd: 74_000, pools: 1 },
-  { zone: "ethiopia-3", tvlUsd: 0, volume24hUsd: 0, pools: 0 },
   { zone: "paxos-1", tvlUsd: 480_000, volume24hUsd: 151_000, pools: 1 },
   { zone: "paxos-2", tvlUsd: 0, volume24hUsd: 0, pools: 0 },
   { zone: "paxos-3", tvlUsd: 0, volume24hUsd: 0, pools: 0 },
+  { zone: "hydra-1", tvlUsd: 360_000, volume24hUsd: 74_000, pools: 1 },
+  { zone: "hydra-2", tvlUsd: 0, volume24hUsd: 0, pools: 0 },
+  { zone: "hydra-3", tvlUsd: 0, volume24hUsd: 0, pools: 0 },
 ].map((s) => ({ ...s, region: REGION_OF[s.zone.split("-")[0]] }));
 
 export function getShardStats(): ShardStat[] {

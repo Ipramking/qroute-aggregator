@@ -1,100 +1,116 @@
 # qroute — Litepaper
 
-*The chain-abstraction layer for Quai Network*
+*Cross-shard routing infrastructure for Quai Network*
 
-**Version 0.1 · Orchard testnet**
+**Version 0.2 · Orchard testnet · built ahead of Quai's sharding roadmap**
 
 ---
 
 ## Abstract
 
-Quai Network scales through parallel execution: the chain is partitioned into **9 zone
-shards** (cyprus, ethiopia, paxos × 1–3) that produce blocks concurrently. This is what
-lets Quai scale — but it fragments liquidity. Capital pooled on one shard is invisible
-to traders on another without manual, multi-step bridging.
+Quai Network scales by **sharding**: it braids many merge-mined chains
+(Prime → Region → Zone) and activates new execution zones as demand grows. **Today only
+one zone — Cyprus-1 — is live on mainnet.** As the network shards into additional zones
+(regions: Cyprus, Paxos, Hydra), each zone will host its own liquidity, and there is
+currently **no routing layer** to move value optimally across them.
 
-**qroute** abstracts the shards away. A user signs a single intent to swap; the protocol
-computes the optimal execution path across all 9 shards — local, cross-shard, or split —
-prices in Quai's native cross-shard (ETx) gas, and settles. The cross-shard arbitrage
-this unlocks (AEV) is captured for the protocol and **rebated to the trader** rather than
-leaking to MEV searchers.
+**qroute** is that layer, built and tested now so it is ready before it is needed. A trader
+(or an integrating wallet/dApp) submits one intent; qroute's off-chain pathfinder returns
+the optimal execution path across whatever zones are active — local, cross-shard, or split —
+pricing in Quai's native **External Transaction (ETX)** cost so it only crosses shards when
+the extra depth outweighs the gas.
 
-## The problem: fragmented liquidity
+This is **forward-looking infrastructure for Quai's own scaling roadmap**, not a claim that
+liquidity is fragmented today.
 
-On a single-shard chain, an AMM's depth is global. On Quai, depth is *per shard*. A QI/USDC
-pool on `cyprus-1` and another on `paxos-1` are separate markets with separate prices. The
-result:
+## The problem qroute is built for
 
-- **Worse prices** — traders hit one shallow pool instead of aggregate depth.
-- **Manual bridging** — reaching another shard's liquidity is a multi-transaction chore.
-- **Arbitrage leakage** — price gaps between shards are harvested by external bots.
+On a single-shard chain, an AMM's depth is global. Quai's design deliberately splits
+execution across zones — which is how it scales, but it also means that **once more than one
+zone is live, liquidity becomes per-zone**. A future trader on Cyprus-1 will not natively see
+depth that has accumulated on Paxos-1 without a cross-shard hop. When that happens:
 
-## The solution: shard abstraction + intent settlement
+- prices worsen as trades hit one zone's shallow pool instead of aggregate depth;
+- cross-shard reach becomes a manual, multi-step chore; and
+- inter-zone price gaps get harvested by external arbitrageurs.
 
-qroute presents Quai as if it were one chain:
+None of this bites *yet* — Cyprus-1 is the only live zone. The point is that the routing
+infrastructure should exist **before** the sharding events, not scramble after them.
 
-1. **Off-chain pathfinder.** Reads reserves across every zone shard and builds a liquidity
-   graph. For a given trade it evaluates a direct local swap, a cross-shard swap on a deeper
-   shard, and a split across pools — selecting the route with the best *net* output.
-2. **Gas-aware routing.** Cross-shard hops cost a native ETx. The engine prices these in, so
-   it only crosses shards when the extra depth outweighs the extra gas.
-3. **Intent-based settlement (roadmap).** Users sign a guaranteed outcome ("≥ X out"), and a
-   competitive solver network fills it across shards — retiring most raw-execution attack
-   surface and abstracting the shard mechanics entirely.
+## The solution
 
-## How a swap works
+qroute presents Quai's (eventual) zones as if they were one chain:
 
-```
-origin (cyprus-1)
-  ├─ local swap on cyprus-1                     ┐
-  └─ bridge → swap on paxos-1 → bridge back     ┘ split, weighted for best net output
-        ↓
-  optimal path selected · protocol fee taken · settled
-```
+1. **Off-chain pathfinder** — builds a liquidity graph across active zones and, per trade,
+   evaluates a direct local swap, a cross-shard swap on a deeper zone, and a split across
+   pools, selecting the best *net* output.
+2. **ETX-native, gas-aware scoring** — prices Quai's real cross-shard primitive (External
+   Transactions, coincident-block settlement) into the net-output comparison.
+3. **Intent-based settlement (roadmap)** — users sign a guaranteed outcome; a solver network
+   fills it across zones, abstracting the mechanics entirely.
 
-The routing math is standard constant-product (Uniswap-V2 x·y=k) per pool, composed across
-shards with a gas penalty per cross-shard transfer. Splitting a large trade across a local
-and a cross-shard pool reduces aggregate slippage — a decision the engine makes dynamically.
+## Why not just use IceCreamSwap?
 
-## AEV — arbitrage rebated to users
+IceCreamSwap runs a generic, chain-agnostic multi-DEX aggregator that happens to be deployed
+on Quai as one of many chains. It has no special awareness of Quai's mechanics. qroute's moat
+is the opposite bet — go **deep on what is structurally unique to Quai**:
 
-Cross-shard price discrepancies are *Arbitrage Extractable Value*. On most chains this
-leaks to MEV bots. qroute internalizes it: back-running keeps pool margins balanced, and a
-share of the captured surplus is returned to the trader who created the opportunity.
-*Other DEXs leak your value. qroute pays it back.*
+- **ETX / coincident-block awareness.** Routing that understands Quai's actual cross-shard
+  transaction primitive, rather than treating a shard hop as a generic bridge. A
+  chain-agnostic aggregator cannot replicate this.
+- **Quai gas-model specificity.** Quai's fee mechanics (workshares, PRS, cross-shard
+  settlement) differ from EVM-standard chains. A router that prices ETX gas correctly into
+  net-output scoring is a real, defensible edge.
+- **Public infrastructure, not a competing storefront.** qroute is a pathfinder other Quai
+  dApps and wallets (Pelagus, Quainance) can route through via an SDK — shared plumbing that
+  grows the ecosystem, not another place to swap.
+
+## Architecture
+
+- `routing-engine` — the differentiated IP: constant-product math per pool, composed across
+  zones with an ETX gas penalty per cross-shard hop, gas-aware net-output and split scoring.
+- `contracts` — audited-pattern AMM pair, trusted pair registry, hardened router (registry-
+  resolved pairs, reentrancy guard, SafeERC20, deadlines, relayer-gated + nonce-protected
+  cross-shard callback).
+- `relayer` — watches the source-zone router for cross-shard intents and submits a nonce-gated
+  `onTokenBridgeReceived` on the destination zone.
+- `frontend` — swap/LP UI + live shard map / analytics, Pelagus (EIP-6963) wallet.
 
 ## Security model
 
-qroute is built on audited patterns; every hardening item is covered by tests.
+Built on audited patterns; every hardening item is covered by tests (contracts 14 · engine 18
+· bot 9 · relayer 6 = 47 passing, green CI).
 
-- **Pools** issue real LP tokens with a `MINIMUM_LIQUIDITY` lock — no pool-drain, no
-  first-depositor inflation.
-- **The router never trusts a caller-supplied pair.** Pairs are resolved from a trusted
-  on-chain **registry**, eliminating fake/malicious-pair injection.
-- `ReentrancyGuard` + `SafeERC20` on all state-changing paths; **deadlines** on every swap;
-  **exact-amount approvals** in the client.
-- The **cross-shard bridge callback is relayer-gated and nonce/replay-protected**.
-- Privileged functions are owner-gated (to be migrated to a **multisig** before mainnet).
+- Real LP-token accounting + `MINIMUM_LIQUIDITY` lock (no pool-drain).
+- Router resolves pairs from a **trusted registry** — no fake-pair injection.
+- `ReentrancyGuard` + `SafeERC20`; deadlines on every swap; exact-amount approvals.
+- Cross-shard bridge callback is **relayer-gated and nonce/replay-protected**.
+- Owner-gated admin (to become a **multisig** before mainnet value).
 
-A professional audit and public bug bounty precede any mainnet deployment.
+## Where value comes from
 
-## Business model
+qroute is positioned as **ecosystem infrastructure first**. At Quai's current DeFi scale a
+swap fee is immaterial, so monetization is *not* the pitch:
 
-1. **Protocol fee** — 0.05–0.1% per swap, embedded in the router.
-2. **AEV capture** — cross-shard arbitrage surplus, split between treasury and trader rebates.
-3. **API / SDK licensing** — "Stripe for Quai liquidity": wallets, remittance apps, and
-   dApps route through qroute's aggregation.
+1. **Ecosystem value (now)** — the shared routing layer Quai needs *before* it can shard
+   responsibly; a reference implementation that proves cross-shard routing works the moment a
+   zone activates.
+2. **Integration / SDK (near)** — wallets and dApps route through qroute instead of building
+   their own pathfinder.
+3. **Protocol fee + AEV (later, at volume)** — a small routing fee and rebated cross-shard
+   arbitrage become meaningful only once real volume exists.
 
 ## Roadmap
 
-- **Now** — single-shard *real* swaps + LP on Cyprus-1 (Orchard); hardened contracts; live UI.
-- **Next** — genuine cross-shard settlement across a second shard (native ETx + signed,
-  nonce-gated bridge).
-- **Then** — intent + solver network, MM vaults that rebalance liquidity across shards,
-  cross-shard limit orders / TWAP, public routing SDK, live shard-liquidity analytics.
-- **Trust** — audit, bug bounty, multisig treasury, progressive decentralization.
+- **Now** — hardened contracts + routing engine; real single-zone swaps/LP on Cyprus-1;
+  multi-zone routing proven in tests/preview; relayer + multi-shard deploy scripts ready.
+- **Next** — public routing SDK; second-zone deploy + live ETX cross-shard settlement when a
+  zone activates; intent + solver network.
+- **Then** — MM vaults rebalancing across zones, limit orders / TWAP, shard-liquidity analytics.
+- **Trust** — audit, bug bounty, multisig treasury.
 
 ## Disclaimer
 
-Experimental testnet software; unaudited. QUAI on Orchard testnet has no monetary value.
-Nothing here is financial advice or a solicitation.
+Experimental testnet software; unaudited. Only Cyprus-1 is live on Quai today; multi-zone
+behaviour shown in the app is a forward-looking simulation. QUAI on Orchard testnet has no
+monetary value. Nothing here is financial advice.

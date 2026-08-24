@@ -16,17 +16,17 @@ const STEPS = [
   {
     n: "01",
     title: "Off-chain pathfinder",
-    body: "Reads reserves across all 9 zone shards and computes the optimal route, evaluating split-paths in real time.",
+    body: "Reads reserves across every active Quai zone (Cyprus-1 today; more as the network shards) and computes the optimal route, evaluating split-paths in real time.",
   },
   {
     n: "02",
-    title: "Gas-aware routing",
-    body: "Prices Quai's native cross-shard (ETx) fees so you only route across shards when it actually pays off.",
+    title: "ETX-native gas scoring",
+    body: "Prices Quai's own cross-shard External Transaction (ETX) and coincident-block costs — not a generic bridge hop — so it routes across shards only when the extra depth beats the gas.",
   },
   {
     n: "03",
-    title: "AEV rebated to you",
-    body: "Cross-shard arbitrage is captured for the protocol and returned to traders — not leaked to MEV bots.",
+    title: "Infrastructure, not a silo",
+    body: "A pathfinder wallets and dApps can route through, plus AEV captured for the protocol and returned to traders instead of MEV bots.",
   },
 ];
 
@@ -73,18 +73,22 @@ export default function Home() {
         {/* Hero */}
         <section className="mx-auto max-w-2xl text-center animate-fade-up">
           <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            <span className="text-primary">// </span>chain-abstraction layer for quai
+            <span className="text-primary">// </span>cross-shard routing infrastructure for quai
           </span>
           <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight text-foreground sm:text-6xl">
-            Nine shards.
+            One chain.
             <br />
             <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-              One swap.
+              Every shard.
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-lg text-base leading-relaxed text-muted-foreground">
-            qroute unifies liquidity across Quai's execution shards — optimal cross-shard routing,
-            split liquidity, minimal slippage, and AEV rebated back to you.
+            Quai scales by sharding into new execution zones as demand grows. qroute is the
+            routing layer that makes them feel like one chain — ETX-native, gas-aware, built and
+            tested now so it's ready the moment the shards fire.
+          </p>
+          <p className="mx-auto mt-3 font-mono text-[11px] text-muted-foreground">
+            <span className="text-accent">●</span> Cyprus-1 live today · additional zones simulated in preview
           </p>
         </section>
 

@@ -14,12 +14,12 @@ function zoneOf(address) {
   if (b >= 0x00 && b <= 0x1d) return "cyprus-1";
   if (b >= 0x1e && b <= 0x3b) return "cyprus-2";
   if (b >= 0x3c && b <= 0x59) return "cyprus-3";
-  if (b >= 0x5a && b <= 0x77) return "ethiopia-1";
-  if (b >= 0x78 && b <= 0x95) return "ethiopia-2";
-  if (b >= 0x96 && b <= 0xb3) return "ethiopia-3";
-  if (b >= 0xb4 && b <= 0xd1) return "paxos-1";
-  if (b >= 0xd2 && b <= 0xef) return "paxos-2";
-  if (b >= 0xf0 && b <= 0xff) return "paxos-3";
+  if (b >= 0x5a && b <= 0x77) return "paxos-1";
+  if (b >= 0x78 && b <= 0x95) return "paxos-2";
+  if (b >= 0x96 && b <= 0xb3) return "paxos-3";
+  if (b >= 0xb4 && b <= 0xd1) return "hydra-1";
+  if (b >= 0xd2 && b <= 0xef) return "hydra-2";
+  if (b >= 0xf0 && b <= 0xff) return "hydra-3";
   return "unknown";
 }
 

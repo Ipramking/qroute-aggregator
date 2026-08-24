@@ -37,7 +37,7 @@ const usdcL = ADDRESSES.usdc.toLowerCase();
 const DEMO_POOLS = [
   { zone: "cyprus-1", r0: 200_000n, r1: 200_000n, pair: "0x00000000000000000000000000000000000c0001" },
   { zone: "paxos-1", r0: 240_000n, r1: 240_000n, pair: "0x00000000000000000000000000000000000c0002" },
-  { zone: "ethiopia-2", r0: 180_000n, r1: 180_000n, pair: "0x00000000000000000000000000000000000c0003" },
+  { zone: "hydra-1", r0: 180_000n, r1: 180_000n, pair: "0x00000000000000000000000000000000000c0003" },
 ];
 
 interface Web3State {

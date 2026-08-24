@@ -1,9 +1,12 @@
 # qroute — Roadmap, Security & Positioning
 
-> **qroute** is the chain-abstraction + intent-settlement layer for **Quai Network**.
-> It makes Quai's 9 execution shards feel like one chain: you sign an intent, solvers
-> compete to fill it across shards, and the cross-shard arbitrage (AEV) we capture is
-> rebated back to you instead of leaking to MEV bots.
+> **qroute** is **cross-shard routing infrastructure for Quai Network**, built ahead of
+> Quai's sharding roadmap. Today only **Cyprus-1** is live (regions: Cyprus / Paxos / Hydra);
+> as Quai activates new zones, qroute is the layer that makes them feel like one chain —
+> ETX-native routing, split liquidity, and cross-shard arbitrage (AEV) rebated to traders.
+> Forward-looking infrastructure, **not** a claim that liquidity is fragmented today.
+> Differs from generic aggregators (e.g. IceCreamSwap) by modelling Quai's real ETX /
+> coincident-block mechanics rather than treating a shard hop as a generic bridge.
 
 - **Live target:** Quai Orchard testnet, Cyprus-1 (single-shard real first)
 - **Repo:** https://github.com/Ipramking/qroute-aggregator
@@ -99,7 +102,7 @@ real slippage UX, exact approvals, and a **multisig** for `owner`/`feeTo`.
 
 Terminal-grade precision meets refined fintech. Take Quai's DNA (near-black canvas,
 terminal/code loader, numbered sections, heavy motion) and make it ours by **making the
-invisible — 9 shards, live routing — visible.** Executed via the `frontend-revamp` skill.
+invisible — Quai's zones (up to 9) and live routing — visible.** Executed via the `frontend-revamp` skill.
 
 - **Color** — base `#0A0A0B`, surfaces `#131316`/`#1A1A1E`, hairlines `#26262B`; **Quai orange** primary; **electric cyan** reserved for cross-shard flows; semantic green/red for P&L + tx state.
 - **Type** — geometric grotesk headlines (Geist / Space Grotesk), **mono for all data & addresses** (Geist Mono / JetBrains Mono); tabular-nums as hero.

@@ -1,8 +1,9 @@
 # qroute
 
-**The chain-abstraction layer for Quai Network.** One-signature swaps across Quai's
-9 execution shards — optimal cross-shard routing, split liquidity, minimal slippage,
-and AEV rebated back to you instead of leaking to MEV bots.
+**Cross-shard routing infrastructure for Quai Network** — built ahead of Quai's sharding
+roadmap. As Quai activates new execution zones, qroute routes optimally across them:
+ETX-native cross-shard routing, split liquidity, and AEV rebated to traders. **Cyprus-1
+live today**; additional zones are forward-looking.
 
 [![CI](https://github.com/Ipramking/qroute-aggregator/actions/workflows/ci.yml/badge.svg)](https://github.com/Ipramking/qroute-aggregator/actions/workflows/ci.yml)
 
@@ -12,20 +13,30 @@ and AEV rebated back to you instead of leaking to MEV bots.
 
 ---
 
-## Why
+## Why — forward-looking infrastructure
 
-Quai's parallel execution splits the network into 9 zone shards — which fragments
-liquidity. A trader on `cyprus-1` can't natively tap depth sitting on `paxos-1`
-without manual bridging. qroute unifies that liquidity: you sign one intent, and the
-protocol finds the optimal path — local, cross-shard, or split across both — pricing
-in Quai's native cross-shard (ETx) gas so it only routes across shards when it pays.
+Quai scales by **sharding**: it braids many chains (Prime → Region → Zone) and activates
+new execution zones as demand grows. **Today only Cyprus-1 is live** — but each future zone
+will hold its own liquidity, and no routing layer exists yet to move across them. qroute is
+that missing layer, **built and tested now so it's ready before the shards fire**: sign one
+intent and the pathfinder returns the optimal path — local, cross-shard, or split — pricing
+in Quai's native External Transaction (ETX) gas so it only crosses shards when it pays.
 
-## What makes it different (only possible on Quai)
+This is infrastructure for Quai's own scaling roadmap, not a claim that liquidity is
+fragmented today.
 
-- **Shard abstraction** — you never think about which shard you're on.
-- **Intent + solver settlement** — sign an outcome, not a raw route (roadmap).
-- **AEV rebate** — cross-shard arbitrage is captured for the protocol and returned to traders.
-- **Shard-aware routing** — depth and gas per zone drive genuine split-path decisions.
+## What makes it different
+
+Not another swap UI, and not a generic multi-chain aggregator (e.g. IceCreamSwap) bolted
+onto Quai as one of many chains:
+
+- **ETX-native routing** — models Quai's real cross-shard primitive (External Transactions,
+  coincident blocks) and prices it into net-output scoring, instead of treating a shard hop
+  as a generic bridge. A chain-agnostic aggregator structurally can't have this.
+- **Public infrastructure, not a silo** — a pathfinder wallets/dApps (Pelagus, Quainance)
+  can route through via an SDK, rather than each rebuilding their own.
+- **Shard-aware split routing** — per-zone depth and ETX gas drive genuine split-path decisions.
+- **AEV rebate** — cross-shard arbitrage captured for the protocol and returned to traders.
 
 ## Architecture (npm-workspaces monorepo)
 
