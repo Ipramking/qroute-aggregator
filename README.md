@@ -4,6 +4,8 @@
 9 execution shards — optimal cross-shard routing, split liquidity, minimal slippage,
 and AEV rebated back to you instead of leaking to MEV bots.
 
+[![CI](https://github.com/Ipramking/qroute-aggregator/actions/workflows/ci.yml/badge.svg)](https://github.com/Ipramking/qroute-aggregator/actions/workflows/ci.yml)
+
 **Live:** https://qroute-six.vercel.app · **Network:** Quai Orchard testnet (Cyprus-1)
 
 > Nine shards. One swap.
